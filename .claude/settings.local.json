@@ -4,7 +4,16 @@
       "Bash(git fetch:*)",
       "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
       "Skill(speckit.clarify)",
-      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)"
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Skill(speckit.plan)",
+      "Bash(.specify/scripts/bash/setup-plan.sh:*)",
+      "Bash(.specify/scripts/bash/update-agent-context.sh:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npm install:*)",
+      "Bash(npm view:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm test:*)"
     ]
   }
 }
