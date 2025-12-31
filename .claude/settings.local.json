@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch:*)",
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
+      "Skill(speckit.clarify)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)"
+    ]
+  }
+}

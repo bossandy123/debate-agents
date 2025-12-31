@@ -247,44 +247,18 @@
 
 ---
 
-### Phase 1：开篇立论
+## 5. 实时输出要求
 
-* Pro → Con 顺序
-* 允许提出核心论点（<= 3 条）
-
----
-
-### Phase 2：针对性反驳
-
-* 必须引用对方原句
-* 禁止新论点
+系统必须支持**实时流式输出**模式：
+* 用户能够在辩论进行中实时看到每个Agent的发言内容
+* Agent生成内容时立即推送给用户，而不是等待完整生成后才展示
+* 类似观看直播的体验，用户可以实时跟随辩论进程
 
 ---
 
-### Phase 3：交叉质询
+## 6. SQLite 数据库设计
 
-* 提问 → 回答
-* 裁判可判定回避 / 无效回答
-
----
-
-### Phase 4：总结陈词
-
-* 仅允许总结已有论点
-
----
-
-### Phase 5：裁决与投票
-
-* 裁判综合评分
-* 观众加权投票
-* 输出胜者
-
----
-
-## 5. SQLite 数据库设计
-
-### 5.1 debates
+### 6.1 debates
 
 ```sql
 CREATE TABLE debates (
@@ -294,7 +268,7 @@ CREATE TABLE debates (
 );
 ```
 
-### 5.2 agents
+### 6.2 agents
 
 ```sql
 CREATE TABLE agents (
@@ -306,7 +280,7 @@ CREATE TABLE agents (
 );
 ```
 
-### 5.3 rounds
+### 6.3 rounds
 
 ```sql
 CREATE TABLE rounds (
@@ -317,7 +291,7 @@ CREATE TABLE rounds (
 );
 ```
 
-### 5.4 messages
+### 6.4 messages
 
 ```sql
 CREATE TABLE messages (
@@ -329,7 +303,7 @@ CREATE TABLE messages (
 );
 ```
 
-### 5.5 scores
+### 6.5 scores
 
 ```sql
 CREATE TABLE scores (
@@ -342,7 +316,7 @@ CREATE TABLE scores (
 );
 ```
 
-### 5.6 votes
+### 6.6 votes
 
 ```sql
 CREATE TABLE votes (
@@ -355,29 +329,24 @@ CREATE TABLE votes (
 
 ---
 
-## 6. 多模型集合辩论机制
+## 7. 多模型集合辩论机制
 
 * 每个模型 = 独立人格
 * 不做 ensemble averaging
 * **保留分歧** 才有价值
 
-建议初始矩阵：
-
-| 角色 | 模型       |
-| -- | -------- |
-| 正方 | GPT-4.x  |
-| 正方 | Claude   |
-| 反方 | Gemini   |
-| 反方 | DeepSeek |
+模型配置说明：
+* 正方和反方各配置1个主辩模型（如：正方使用GPT-4.x，反方使用Claude）
+* 裁判Agent使用独立模型，不与辩手相同
+* 观众Agent可使用多种模型以体现不同认知偏好
 
 裁判建议使用：
-
 * 不参与辩论的模型
 * 或规则极强 Prompt 的 GPT
 
 ---
 
-## 7. 最终输出（产品级）
+## 8. 最终输出（产品级）
 
 1. 胜负结果
 2. 关键转折回合
@@ -387,15 +356,15 @@ CREATE TABLE votes (
 
 ---
 
-## 8. 非目标（刻意不做）
+## 9. 非目标（刻意不做）
 
 * 不追求语言优美
 * 不做实时语音
-* 不做单模型自嗨
+* 不做单模型自辩
 
 ---
 
-## 9. 进阶方向（为未来留钩子）
+## 10. 进阶方向（为未来留钩子）
 
 * 人类观众混入
 * 历史辩题 replay
