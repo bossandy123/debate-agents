@@ -157,6 +157,17 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
 
+### Quality Gates (Constitution Compliance)
+
+- [ ] TXXX Verify all code passes linting with zero errors
+- [ ] TXXX Verify type safety - no implicit `any` types
+- [ ] TXXX Verify error messages are clear and actionable
+- [ ] TXXX Verify API response format consistency
+- [ ] TXXX Verify performance requirements (response times, memory limits)
+- [ ] TXXX Verify all documentation is written in Chinese
+- [ ] TXXX Verify code comments and API docs are in Chinese
+- [ ] TXXX Run static analysis and security scans
+
 ---
 
 ## Dependencies & Execution Order

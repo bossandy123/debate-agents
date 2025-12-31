@@ -85,7 +85,7 @@
 ### Functional Requirements
 
 - **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
-- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]  
+- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]
 - **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
@@ -94,6 +94,34 @@
 
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
 - **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
+
+### Quality Requirements
+
+- **QR-001**: Code MUST use strict type checking with no implicit `any` types
+- **QR-002**: Public APIs MUST be documented with usage examples
+- **QR-003**: Critical code paths MUST have automated test coverage
+- **QR-004**: All code MUST pass linting with zero errors
+
+### User Experience Requirements
+
+- **UXR-001**: Error messages MUST be clear and actionable to end users
+- **UXR-002**: API responses MUST follow consistent structure across all endpoints
+- **UXR-003**: User actions MUST provide feedback within 200ms for perceived responsiveness
+- **UXR-004**: Breaking changes to user interfaces require migration paths
+
+### Performance Requirements
+
+- **PR-001**: API endpoints MUST respond within p95 < [SPECIFY_MS]ms for standard requests
+- **PR-002**: Memory usage MUST stay below [SPECIFY_LIMIT]MB under normal load
+- **PR-003**: [Specify caching requirements if applicable]
+- **PR-004**: Long-running operations (> 1s) MUST use async patterns with progress feedback
+
+### Documentation Requirements
+
+- **DR-001**: All feature specifications MUST be written in Chinese
+- **DR-002**: Public API documentation MUST be in Chinese with code examples
+- **DR-003**: User-facing guides and help text MUST be in Chinese
+- **DR-004**: Technical terms without appropriate Chinese translations may remain in English
 
 ### Key Entities *(include if feature involves data)*
 

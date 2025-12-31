@@ -31,7 +31,12 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- **Code Quality**: Does the implementation include type safety, testing, and documentation plans?
+- **User Experience Consistency**: Are error messages, response formats, and interface stability addressed?
+- **Performance Requirements**: Are response time, resource limits, and monitoring defined?
+- **Documentation Language**: Are all documents (spec, plan, tasks) written in Chinese?
+
+Any violations MUST be justified in the Complexity Tracking section below.
 
 ## Project Structure
 

@@ -1,0 +1,585 @@
+openapi: 3.0.3
+info:
+  title: 多模型Agent辩论系统 API
+  description: |
+    提供辩论会话管理、Agent配置、回合执行、结果查询等核心功能的REST API。
+
+    ## 核心功能
+    - 创建并启动新的辩论会话
+    - 查询辩论状态和进度
+    - 获取历史辩论记录和复盘报告
+  version: 1.0.0
+  contact:
+    name: Debate Agents Team
+
+servers:
+  - url: http://localhost:3000/api
+    description: 本地开发服务器
+  - url: https://api.debate-agents.com/api
+    description: 生产服务器
+
+tags:
+  - name: debates
+    description: 辩论会话管理
+  - name: rounds
+    description: 回合执行
+  - name: results
+    description: 结果查询
+
+paths:
+  /debates:
+    post:
+      tags: [debates]
+      summary: 创建新辩论
+      description: 根据辩题和配置创建新的辩论会话
+      operationId: createDebate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDebateRequest'
+            examples:
+              basic:
+                summary: 基础配置
+                value:
+                  topic: "人工智能是否会取代人类工作"
+                  pro_model: "gpt-4o"
+                  con_model: "claude-3-5-sonnet-20241022"
+              advanced:
+                summary: 高级配置
+                value:
+                  topic: "远程办公是否应该成为常态"
+                  pro_model: "gpt-4o"
+                  con_model: "gemini-2.0-flash-exp"
+                  audience_count: 5
+                  max_rounds: 10
+      responses:
+        '201':
+          description: 辩论创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DebateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /debates/{debateId}:
+    get:
+      tags: [debates]
+      summary: 获取辩论详情
+      description: 查询指定辩论的完整信息，包括当前状态和所有回合
+      operationId: getDebate
+      parameters:
+        - $ref: '#/components/parameters/DebateId'
+      responses:
+        '200':
+          description: 成功返回辩论详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DebateDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /debates/{debateId}/status:
+    get:
+      tags: [debates]
+      summary: 获取辩论状态
+      description: 查询辩论的当前状态（用于轮询进度）
+      operationId: getDebateStatus
+      parameters:
+        - $ref: '#/components/parameters/DebateId'
+      responses:
+        '200':
+          description: 成功返回状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DebateStatusResponse'
+
+  /debates/{debateId}/rounds:
+    get:
+      tags: [rounds]
+      summary: 获取辩论所有回合
+      description: 获取指定辩论的所有回合记录
+      operationId: getDebateRounds
+      parameters:
+        - $ref: '#/components/parameters/DebateId'
+      responses:
+        '200':
+          description: 成功返回回合列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rounds:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Round'
+
+  /debates/{debateId}/rounds/{roundNum}:
+    get:
+      tags: [rounds]
+      summary: 获取指定回合详情
+      description: 获取指定回合的详细内容，包括所有消息和评分
+      operationId: getRound
+      parameters:
+        - $ref: '#/components/parameters/DebateId'
+        - name: roundNum
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+          description: 回合序号
+      responses:
+        '200':
+          description: 成功返回回合详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoundDetailResponse'
+
+  /debates/{debateId}/result:
+    get:
+      tags: [results]
+      summary: 获取辩论结果
+      description: 获取已完成辩论的完整结果和复盘报告
+      operationId: getDebateResult
+      parameters:
+        - $ref: '#/components/parameters/DebateId'
+      responses:
+        '200':
+          description: 成功返回结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DebateResultResponse'
+        '400':
+          description: 辩论尚未完成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "辩论尚未完成"
+                code: "DEBATE_NOT_COMPLETED"
+
+  /debates:
+    get:
+      tags: [debates]
+      summary: 获取辩论列表
+      description: 获取所有辩论的列表（支持分页）
+      operationId: listDebates
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, active, completed, failed]
+          description: 按状态筛选
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: 返回数量限制
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: 偏移量
+      responses:
+        '200':
+          description: 成功返回列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  debates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Debate'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+components:
+  parameters:
+    DebateId:
+      name: debateId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: 辩论ID
+      example: 1
+
+  schemas:
+    CreateDebateRequest:
+      type: object
+      required:
+        - topic
+        - pro_model
+        - con_model
+      properties:
+        topic:
+          type: string
+          description: 辩题
+          example: "人工智能是否会取代人类工作"
+        pro_model:
+          type: string
+          description: 正方模型
+          enum: [gpt-4o, claude-3-5-sonnet-20241022, gemini-2.0-flash-exp, deepseek-chat]
+          example: "gpt-4o"
+        con_model:
+          type: string
+          description: 反方模型
+          enum: [gpt-4o, claude-3-5-sonnet-20241022, gemini-2.0-flash-exp, deepseek-chat]
+          example: "claude-3-5-sonnet-20241022"
+        audience_count:
+          type: integer
+          description: 观众Agent数量
+          default: 5
+          minimum: 1
+          maximum: 10
+        max_rounds:
+          type: integer
+          description: 最大回合数
+          default: 10
+          minimum: 5
+          maximum: 15
+
+    DebateResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        topic:
+          type: string
+          example: "人工智能是否会取代人类工作"
+        status:
+          type: string
+          enum: [pending, active, completed, failed]
+          example: "active"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-12-31T10:00:00Z"
+
+    DebateDetailResponse:
+      type: object
+      properties:
+        debate:
+          $ref: '#/components/schemas/Debate'
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Agent'
+        rounds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Round'
+
+    Debate:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        topic:
+          type: string
+          example: "人工智能是否会取代人类工作"
+        status:
+          type: string
+          enum: [pending, active, completed, failed]
+          example: "completed"
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        winner:
+          type: string
+          enum: [pro, con, draw]
+          nullable: true
+          example: "pro"
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "agent_1"
+        debate_id:
+          type: integer
+          example: 1
+        role:
+          type: string
+          enum: [debater, judge, audience]
+          example: "debater"
+        provider:
+          type: string
+          enum: [openai, anthropic, google, deepseek]
+          example: "openai"
+        model:
+          type: string
+          example: "gpt-4o"
+        stance:
+          type: string
+          enum: [pro, con]
+          nullable: true
+          example: "pro"
+        style_tag:
+          type: string
+          enum: [rational, aggressive, conservative, technical]
+          nullable: true
+
+    Round:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        debate_id:
+          type: integer
+          example: 1
+        round_num:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 1
+        phase:
+          type: string
+          enum: [opening, rebuttal, critical, closing, summary]
+          example: "opening"
+        status:
+          type: string
+          enum: [pending, in_progress, completed]
+          example: "completed"
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    RoundDetailResponse:
+      type: object
+      properties:
+        round:
+          $ref: '#/components/schemas/Round'
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        scores:
+          type: array
+          items:
+            $ref: '#/components/schemas/Score'
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        round_id:
+          type: integer
+          example: 1
+        agent_id:
+          type: string
+          example: "agent_1"
+        content:
+          type: string
+          example: "我认为人工智能将创造新的就业机会..."
+        message_type:
+          type: string
+          enum: [argument, rebuttal, judge_comment, audience_support, help_request]
+          example: "argument"
+        created_at:
+          type: string
+          format: date-time
+
+    Score:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        round_id:
+          type: integer
+          example: 1
+        agent_id:
+          type: string
+          example: "agent_1"
+        logic:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 10
+          example: 8.5
+        rebuttal:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 10
+          example: 7.0
+        clarity:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 10
+          example: 9.0
+        evidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 10
+          example: 7.5
+        total:
+          type: number
+          format: float
+          example: 32.0
+        comment:
+          type: string
+          nullable: true
+          example: "论点清晰，逻辑严密"
+
+    DebateStatusResponse:
+      type: object
+      properties:
+        debate_id:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [pending, active, completed, failed]
+          example: "active"
+        current_round:
+          type: integer
+          nullable: true
+          example: 3
+        progress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          example: 30
+
+    DebateResultResponse:
+      type: object
+      properties:
+        debate:
+          $ref: '#/components/schemas/Debate'
+        winner:
+          type: string
+          enum: [pro, con, draw]
+          example: "pro"
+        final_scores:
+          type: object
+          properties:
+            pro:
+              type: number
+              format: float
+              example: 285.5
+            con:
+              type: number
+              format: float
+              example: 262.0
+        key_turning_round:
+          type: integer
+          nullable: true
+          example: 7
+          description: 关键转折回合
+        blind_spots:
+          type: object
+          properties:
+            pro:
+              type: array
+              items:
+                type: string
+              example: ["未考虑技术伦理问题"]
+            con:
+              type: array
+              items:
+                type: string
+              example: ["低估了AI的创造力"]
+        audience_votes:
+          type: array
+          items:
+            type: object
+            properties:
+              agent_id:
+                type: string
+              vote:
+                type: string
+                enum: [pro, con]
+              confidence:
+                type: number
+                format: float
+              reason:
+                type: string
+        judge_summary:
+          type: string
+          example: "正方在逻辑一致性和论证有效性方面表现更佳..."
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "请求参数无效"
+        code:
+          type: string
+          example: "INVALID_ARGUMENT"
+        details:
+          type: object
+          additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: 请求参数无效
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "辩题不能为空"
+            code: "INVALID_ARGUMENT"
+
+    NotFound:
+      description: 资源未找到
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "辩论不存在"
+            code: "DEBATE_NOT_FOUND"
+
+    InternalServerError:
+      description: 服务器内部错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "内部服务器错误"
+            code: "INTERNAL_ERROR"
