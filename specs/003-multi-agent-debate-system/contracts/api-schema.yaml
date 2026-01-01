@@ -65,12 +65,21 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/DebateListItem'
-                  total:
-                    type: integer
-                  page:
-                    type: integer
-                  limit:
-                    type: integer
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 20
+                      total:
+                        type: integer
+                        example: 100
+                      totalPages:
+                        type: integer
+                        example: 5
 
     post:
       tags: [debates]
@@ -138,6 +147,64 @@ paths:
       responses:
         '204':
           description: 删除成功
+        '404':
+          description: 辩论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/debates/{id}/messages:
+    get:
+      tags: [debates]
+      summary: 获取辩论消息列表
+      description: 获取辩论的所有消息内容，包含轮次信息和Agent立场
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功返回消息列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  count:
+                    type: integer
+                    example: 25
+        '404':
+          description: 辩论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/debates/{id}/export:
+    get:
+      tags: [debates]
+      summary: 导出辩论数据
+      description: 导出完整的辩论数据为JSON格式
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功返回辩论数据
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DebateDetail'
         '404':
           description: 辩论不存在
           content:
@@ -273,12 +340,13 @@ paths:
         通过 Server-Sent Events (SSE) 实时接收辩论进度。
 
         ## 事件类型
-        - `round_start`: 新轮次开始
-        - `message_start`: Agent 开始发言
-        - `message_token`: 流式 Token
-        - `message_end`: Agent 发言结束
-        - `score_update`: 裁判评分更新
-        - `round_end`: 轮次结束
+        - `connected`: 连接建立
+        - `debate_start`: 辩论开始
+        - `round_start`: 轮次开始
+        - `agent_start`: Agent 开始发言（包含 `round_id`、`role`、`stance` 字段）
+        - `token`: 流式 Token
+        - `agent_end`: Agent 发言结束
+        - `score_update`: 评分更新
         - `debate_end`: 辩论结束
         - `error`: 错误事件
 
@@ -296,15 +364,21 @@ paths:
               schema:
                 type: string
                 example: |
-                  data: {"type":"round_start","data":{"round_id":1,"sequence":1}}
+                  data: {"type":"connected","data":{"debate_id":1}}
 
-                  data: {"type":"message_start","data":{"agent_id":"debater-pro","agent_name":"正方"}}
+                  data: {"type":"debate_start","data":{"debate_id":1}}
 
-                  data: {"type":"message_token","data":{"token":"我"}}
+                  data: {"type":"round_start","data":{"round_id":1,"sequence":1,"phase":"opening"}}
 
-                  data: {"type":"message_token","data":{"token":"认为"}}
+                  data: {"type":"agent_start","data":{"agent_id":"debater-pro","role":"debater","stance":"pro","round_id":1}}
 
-                  data: {"type":"message_end","data":{"content":"我认为..."}}
+                  data: {"type":"token","data":{"token":"我"}}
+
+                  data: {"type":"token","data":{"token":"认为"}}
+
+                  data: {"type":"agent_end","data":{"agent_id":"debater-pro","content":"我认为..."}}
+
+                  data: {"type":"score_update","data":{"round_id":1,"agent_id":"debater-pro","scores":{"logic":7.5,"rebuttal":6.0,"clarity":8.0,"evidence":7.0}}}
 
       headers:
         Cache-Control:
@@ -552,23 +626,33 @@ components:
       type: object
       properties:
         id:
-          type: integer
-          example: 1
-        round_id:
-          type: integer
-          example: 1
-        agent_id:
           type: string
-          format: uuid
-        agent:
-          $ref: '#/components/schemas/Agent'
+          example: "1"
+          description: 消息ID
+        role:
+          type: string
+          enum: [debater, judge, audience, moderator]
+          example: debater
+          description: Agent角色类型
+        stance:
+          type: string
+          enum: [pro, con]
+          example: pro
+          nullable: true
+          description: Agent立场（仅辩手有值）
         content:
           type: string
           example: "我方认为人工智能将创造更多就业机会..."
-        created_at:
+          description: 消息内容，支持Markdown格式
+        timestamp:
           type: string
           format: date-time
           example: "2025-12-31T10:05:00Z"
+          description: 消息创建时间
+        roundId:
+          type: integer
+          example: 1
+          description: 轮次序号（用于前端按轮次分组展示）
 
     Score:
       type: object
@@ -609,77 +693,112 @@ components:
       type: object
       properties:
         debate:
-          $ref: '#/components/schemas/DebateListItem'
-        winner:
-          type: string
-          enum: [pro, con, draw]
-          example: pro
-        final_scores:
           type: object
           properties:
-            pro:
-              type: number
-              format: float
-              example: 72.5
-            con:
-              type: number
-              format: float
-              example: 68.0
-        key_turning_rounds:
+            id:
+              type: integer
+              example: 1
+            topic:
+              type: string
+              example: "人工智能是否会取代人类工作"
+            status:
+              type: string
+              enum: [pending, running, completed, failed]
+            winner:
+              type: string
+              enum: [pro, con, draw]
+              nullable: true
+            max_rounds:
+              type: integer
+              example: 10
+            created_at:
+              type: string
+              format: date-time
+            completed_at:
+              type: string
+              format: date-time
+              nullable: true
+        judgment:
+          type: object
+          description: 裁判总结和评分
+          properties:
+            summary:
+              type: string
+              description: 裁判总结，支持Markdown格式
+            comment:
+              type: string
+              description: 裁判评论，支持Markdown格式
+            final_scores:
+              type: object
+              properties:
+                pro:
+                  type: number
+                  format: float
+                  example: 72.5
+                con:
+                  type: number
+                  format: float
+                  example: 68.0
+        rounds:
           type: array
+          description: 所有轮次的详细信息和评分
           items:
             type: object
             properties:
-              round:
+              round_id:
                 type: integer
-                example: 5
-              description:
+                example: 1
+              sequence:
+                type: integer
+                example: 1
+              phase:
                 type: string
-                example: "观众介入改变了辩论走向"
-        decisive_arguments:
-          type: array
-          items:
-            type: object
-            properties:
-              stance:
-                type: string
-                example: pro
-              argument:
-                type: string
-                example: "AI将创造新的职业类别"
-        blind_spots:
-          type: object
-          properties:
-            pro:
-              type: array
-              items:
-                type: string
-              example: ["忽略了AI伦理问题"]
-            con:
-              type: array
-              items:
-                type: string
-              example: ["低估了人类的适应能力"]
-        audience_divergence:
-          type: array
-          items:
-            type: object
-            properties:
-              audience_type:
-                type: string
-                example: rational
-              vote:
-                type: string
-                example: pro
-              confidence:
-                type: number
-                format: float
-              reason:
-                type: string
-        complete_transcript:
-          type: array
-          items:
-            $ref: '#/components/schemas/RoundDetail'
+                enum: [opening, rebuttal, closing]
+                example: opening
+              messages:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    agent_id:
+                      type: string
+                    stance:
+                      type: string
+                      enum: [pro, con]
+                    content:
+                      type: string
+                      description: 发言内容，支持Markdown格式
+                    created_at:
+                      type: string
+                      format: date-time
+              scores:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    agent_id:
+                      type: string
+                    stance:
+                      type: string
+                      enum: [pro, con]
+                    logic:
+                      type: number
+                      format: float
+                    rebuttal:
+                      type: number
+                      format: float
+                    clarity:
+                      type: number
+                      format: float
+                    evidence:
+                      type: number
+                      format: float
+                    total:
+                      type: number
+                      format: float
+                    comment:
+                      type: string
+                      description: 评分评论，支持Markdown格式
 
     ModelProvider:
       type: object
