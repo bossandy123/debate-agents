@@ -16,7 +16,7 @@ export type Stance = "pro" | "con";
 /**
  * 模型提供商
  */
-export type ModelProvider = "openai" | "anthropic" | "google" | "deepseek";
+export type ModelProvider = "openai" | "anthropic" | "google" | "deepseek" | "custom";
 
 /**
  * 辩手风格标签（仅 debater 可选）
@@ -43,6 +43,8 @@ export interface Agent {
   stance?: Stance;
   model_provider: ModelProvider;
   model_name: string;
+  api_key?: string; // 自定义 API 密钥
+  base_url?: string; // 自定义 API 端点
   style_tag?: StyleTag;
   audience_type?: AudienceType;
   config?: Record<string, unknown>;
@@ -58,6 +60,8 @@ export interface CreateAgentInput {
   stance?: Stance;
   model_provider: ModelProvider;
   model_name: string;
+  api_key?: string; // 自定义 API 密钥
+  base_url?: string; // 自定义 API 端点
   style_tag?: StyleTag;
   audience_type?: AudienceType;
   config?: Record<string, unknown>;
@@ -71,6 +75,8 @@ export interface AgentConfig {
   stance?: Stance;
   model_provider: ModelProvider;
   model_name: string;
+  api_key?: string; // 自定义 API 密钥
+  base_url?: string; // 自定义 API 端点
   style_tag?: StyleTag;
   audience_type?: AudienceType;
 }
@@ -106,9 +112,20 @@ export function validateAgentInput(input: CreateAgentInput): string[] {
     "anthropic",
     "google",
     "deepseek",
+    "custom",
   ];
   if (!validProviders.includes(input.model_provider)) {
     errors.push(`无效的模型提供商: ${input.model_provider}`);
+  }
+
+  // 如果使用自定义提供商，必须提供 base_url
+  if (input.model_provider === "custom" && !input.base_url) {
+    errors.push("自定义模型提供商必须提供 base_url");
+  }
+
+  // 如果提供了 api_key，base_url 应该也提供
+  if (input.api_key && !input.base_url && input.model_provider !== "custom") {
+    errors.push("自定义 api_key 需要同时提供 base_url");
   }
 
   return errors;

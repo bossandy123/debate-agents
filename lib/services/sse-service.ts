@@ -6,11 +6,16 @@
 export interface SSEEvent {
   type:
     | "connected"
+    | "debate_start"
+    | "debate_stopped"
     | "round_start"
     | "agent_start"
     | "token"
     | "agent_end"
+    | "audience_speech"
     | "score_update"
+    | "audience_requests"
+    | "audience_approval"
     | "round_end"
     | "debate_end"
     | "error";
@@ -26,7 +31,6 @@ type SSEListener = (event: SSEEvent) => void;
  */
 class SSEService {
   private debates = new Map<number, Set<SSEListener>>();
-  private debounceTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
   /**
    * 订阅辩论事件
@@ -70,6 +74,7 @@ class SSEService {
 
   /**
    * 发送事件到指定辩论的所有订阅者
+   * 注意：移除防抖机制，确保所有事件都能及时送达
    */
   private send(debateId: number, event: Omit<SSEEvent, "timestamp">): void {
     const listeners = this.debates.get(debateId);
@@ -82,25 +87,14 @@ class SSEService {
       timestamp: new Date().toISOString(),
     };
 
-    // 使用防抖，避免短时间内大量事件
-    const timerKey = debateId;
-    if (this.debounceTimers.has(timerKey)) {
-      clearTimeout(this.debounceTimers.get(timerKey)!);
+    // 直接发送事件，不使用防抖
+    for (const listener of listeners) {
+      try {
+        listener(fullEvent);
+      } catch (error) {
+        console.error("SSE listener error:", error);
+      }
     }
-
-    this.debounceTimers.set(
-      timerKey,
-      setTimeout(() => {
-        for (const listener of listeners) {
-          try {
-            listener(fullEvent);
-          } catch (error) {
-            console.error("SSE listener error:", error);
-          }
-        }
-        this.debounceTimers.delete(timerKey);
-      }, 10) // 10ms 防抖
-    );
   }
 
   /**
@@ -122,11 +116,6 @@ class SSEService {
    */
   clearDebate(debateId: number): void {
     this.debates.delete(debateId);
-    const timer = this.debounceTimers.get(debateId);
-    if (timer) {
-      clearTimeout(timer);
-      this.debounceTimers.delete(debateId);
-    }
   }
 
   /**
@@ -134,10 +123,6 @@ class SSEService {
    */
   clearAll(): void {
     this.debates.clear();
-    for (const timer of this.debounceTimers.values()) {
-      clearTimeout(timer);
-    }
-    this.debounceTimers.clear();
   }
 }
 

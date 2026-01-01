@@ -208,12 +208,40 @@ export class ScoreRepository {
   }
 
   /**
+   * 删除辩论的所有评分（通过子查询删除）
+   */
+  deleteByDebateId(debateId: number): number {
+    const db = getDb();
+    const result = db
+      .prepare(`DELETE FROM scores WHERE round_id IN (SELECT id FROM rounds WHERE debate_id = ?)`)
+      .run(debateId);
+    return result.changes;
+  }
+
+  /**
    * 删除 Agent 的所有评分
    */
   deleteByAgentId(agentId: string): number {
     const db = getDb();
     const result = db.prepare("DELETE FROM scores WHERE agent_id = ?").run(agentId);
     return result.changes;
+  }
+
+  /**
+   * 计算辩论的总分（按立场分组）
+   * 返回 Map: "pro" -> ScoreSummary, "con" -> ScoreSummary
+   */
+  calculateTotalScores(debateId: number): Map<string, ScoreSummary> {
+    const pairSummary = this.getDebatePairSummary(debateId);
+
+    const result = new Map<string, ScoreSummary>();
+
+    if (pairSummary) {
+      result.set("pro", pairSummary.pro);
+      result.set("con", pairSummary.con);
+    }
+
+    return result;
   }
 }
 

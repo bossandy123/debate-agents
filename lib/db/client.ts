@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
-import { initSchema, validateSchema } from "./schema";
+import { initSchema } from "./schema";
 
 /**
  * 创建一个新的数据库连接（用于测试）
@@ -49,10 +49,10 @@ class DatabaseClient {
     // 启用外键约束
     db.pragma("foreign_keys = ON");
 
-    // 初始化 Schema
-    if (!validateSchema(db)) {
-      initSchema(db);
-    }
+    // 始终调用 initSchema，它会处理表创建和迁移
+    // CREATE TABLE IF NOT EXISTS 确保不会重复创建表
+    // migrateAgentsTable 会添加缺失的列
+    initSchema(db);
 
     return db;
   }

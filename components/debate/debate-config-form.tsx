@@ -14,8 +14,19 @@ interface AgentConfig {
   stance?: "pro" | "con";
   model_provider: string;
   model_name: string;
+  api_key?: string;
+  base_url?: string;
   style_tag?: string;
   audience_type?: string;
+}
+
+interface AudienceConfig {
+  id: string;
+  audience_type: string;
+  model_provider: string;
+  model_name: string;
+  api_key: string;
+  base_url: string;
 }
 
 export function DebateConfigForm() {
@@ -24,54 +35,25 @@ export function DebateConfigForm() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  // 观众列表状态
+  const [audiences, setAudiences] = useState<AudienceConfig[]>([
+    {
+      id: "audience-1",
+      audience_type: "rational",
+      model_provider: "openai",
+      model_name: "",
+      api_key: "",
+      base_url: "",
+    },
+  ]);
+
   // 客户端验证
-  const validateForm = (data: Record<string, string>): ValidationError[] => {
+  const validateForm = (): ValidationError[] => {
     const errors: ValidationError[] = [];
 
-    // 验证辩题
-    if (!data.topic || data.topic.trim().length === 0) {
-      errors.push({ field: "topic", message: "辩题不能为空" });
-    } else if (data.topic.trim().length > 500) {
-      errors.push({ field: "topic", message: "辩题不能超过500个字符" });
-    } else if (data.topic.trim().length < 5) {
-      errors.push({ field: "topic", message: "辩题至少需要5个字符" });
-    }
-
-    // 验证轮数
-    const maxRounds = parseInt(data.max_rounds || "10", 10);
-    if (isNaN(maxRounds) || maxRounds < 1 || maxRounds > 20) {
-      errors.push({ field: "max_rounds", message: "轮数必须在1-20之间" });
-    }
-
-    // 验证裁判权重
-    const judgeWeight = parseFloat(data.judge_weight || "0.7");
-    if (isNaN(judgeWeight) || judgeWeight < 0 || judgeWeight > 1) {
-      errors.push({ field: "judge_weight", message: "裁判权重必须在0-1之间" });
-    }
-
-    // 验证观众数量
-    const audienceCount = parseInt(data.audience_count || "5", 10);
-    if (isNaN(audienceCount) || audienceCount < 1 || audienceCount > 50) {
-      errors.push({ field: "audience_count", message: "观众数量必须在1-50之间" });
-    }
-
-    // 验证模型选择
-    if (!data.pro_model) {
-      errors.push({ field: "pro_model", message: "请选择正方辩手模型" });
-    }
-    if (!data.con_model) {
-      errors.push({ field: "con_model", message: "请选择反方辩手模型" });
-    }
-    if (!data.judge_model) {
-      errors.push({ field: "judge_model", message: "请选择裁判模型" });
-    }
-
-    // 验证立场定义长度（如果提供）
-    if (data.pro_definition && data.pro_definition.length > 1000) {
-      errors.push({ field: "pro_definition", message: "正方立场定义不能超过1000个字符" });
-    }
-    if (data.con_definition && data.con_definition.length > 1000) {
-      errors.push({ field: "con_definition", message: "反方立场定义不能超过1000个字符" });
+    // 验证观众列表
+    if (audiences.length === 0) {
+      errors.push({ field: "audiences", message: "至少需要一个观众" });
     }
 
     return errors;
@@ -92,11 +74,37 @@ export function DebateConfigForm() {
         }
       });
 
-      // 客户端验证
-      const validationErrors = validateForm(data);
-      if (validationErrors.length > 0) {
+      // 验证基本字段
+      const errors: ValidationError[] = [];
+
+      // 验证辩题
+      if (!data.topic || data.topic.trim().length === 0) {
+        errors.push({ field: "topic", message: "辩题不能为空" });
+      } else if (data.topic.trim().length > 500) {
+        errors.push({ field: "topic", message: "辩题不能超过500个字符" });
+      } else if (data.topic.trim().length < 5) {
+        errors.push({ field: "topic", message: "辩题至少需要5个字符" });
+      }
+
+      // 验证轮数
+      const maxRounds = parseInt(data.max_rounds || "10", 10);
+      if (isNaN(maxRounds) || maxRounds < 1 || maxRounds > 20) {
+        errors.push({ field: "max_rounds", message: "轮数必须在1-20之间" });
+      }
+
+      // 验证裁判权重
+      const judgeWeight = parseFloat(data.judge_weight || "0.7");
+      if (isNaN(judgeWeight) || judgeWeight < 0 || judgeWeight > 1) {
+        errors.push({ field: "judge_weight", message: "裁判权重必须在0-1之间" });
+      }
+
+      // 客户端验证（观众）
+      const audienceErrors = validateForm();
+      errors.push(...audienceErrors);
+
+      if (errors.length > 0) {
         const errorsMap: Record<string, string> = {};
-        validationErrors.forEach((err) => {
+        errors.forEach((err) => {
           errorsMap[err.field] = err.message;
         });
         setFieldErrors(errorsMap);
@@ -106,37 +114,67 @@ export function DebateConfigForm() {
       }
 
       // 构建 agents 数组
-      const agents: AgentConfig[] = [
-        {
-          role: "debater",
-          stance: "pro",
-          model_provider: getProviderFromModel(data.pro_model),
-          model_name: data.pro_model,
-          style_tag: data.pro_style,
-        },
-        {
-          role: "debater",
-          stance: "con",
-          model_provider: getProviderFromModel(data.con_model),
-          model_name: data.con_model,
-          style_tag: data.con_style,
-        },
-        {
-          role: "judge",
-          model_provider: getProviderFromModel(data.judge_model),
-          model_name: data.judge_model,
-        },
-      ];
+      const agents: AgentConfig[] = [];
 
-      // 添加观众
-      const audienceCount = parseInt(data.audience_count, 10);
-      for (let i = 0; i < audienceCount; i++) {
-        agents.push({
+      // 辅助函数：只在有值时添加字段
+      const addOptionalField = (obj: AgentConfig, key: "api_key" | "base_url", value: string | undefined) => {
+        if (value && value.trim()) {
+          (obj as unknown as Record<string, string>)[key] = value;
+        }
+      };
+
+      // 正方辩手
+      const proAgent: AgentConfig = {
+        role: "debater",
+        stance: "pro",
+        model_provider: data.pro_provider,
+        model_name: data.pro_model,
+        style_tag: data.pro_style,
+      };
+      addOptionalField(proAgent, "api_key", data.pro_api_key);
+      addOptionalField(proAgent, "base_url", data.pro_base_url);
+      agents.push(proAgent);
+
+      // 反方辩手
+      const conAgent: AgentConfig = {
+        role: "debater",
+        stance: "con",
+        model_provider: data.con_provider,
+        model_name: data.con_model,
+        style_tag: data.con_style,
+      };
+      addOptionalField(conAgent, "api_key", data.con_api_key);
+      addOptionalField(conAgent, "base_url", data.con_base_url);
+      agents.push(conAgent);
+
+      // 裁判
+      const judgeAgent: AgentConfig = {
+        role: "judge",
+        model_provider: data.judge_provider,
+        model_name: data.judge_model,
+      };
+      addOptionalField(judgeAgent, "api_key", data.judge_api_key);
+      addOptionalField(judgeAgent, "base_url", data.judge_base_url);
+      agents.push(judgeAgent);
+
+      // 添加观众（使用动态列表）
+      for (const audience of audiences) {
+        const audienceAgent: AgentConfig = {
           role: "audience",
-          model_provider: "openai", // 默认使用 OpenAI
-          model_name: "gpt-3.5-turbo",
-          audience_type: data.audience_type,
-        });
+          model_provider: audience.model_provider,
+          model_name: audience.model_name || "gpt-3.5-turbo",
+          audience_type: audience.audience_type,
+        };
+
+        // 只在有值时添加 api_key 和 base_url
+        if (audience.api_key && audience.api_key.trim()) {
+          audienceAgent.api_key = audience.api_key;
+        }
+        if (audience.base_url && audience.base_url.trim()) {
+          audienceAgent.base_url = audience.base_url;
+        }
+
+        agents.push(audienceAgent);
       }
 
       const response = await fetch("/api/debates", {
@@ -175,7 +213,18 @@ export function DebateConfigForm() {
         throw new Error(result.error || "创建辩论失败");
       }
 
-      // 跳转到辩论详情页
+      // 自动启动辩论
+      const startResponse = await fetch(`/api/debates/${result.id}/start`, {
+        method: "POST",
+      });
+
+      if (!startResponse.ok) {
+        const startError = await startResponse.json();
+        console.error("自动启动辩论失败:", startError);
+        // 即使启动失败也跳转到辩论页面，用户可以手动重试
+      }
+
+      // 跳转到辩论详情页（观看辩论）
       router.push(`/debate/${result.id}`);
     } catch (err) {
       if (!error) {  // 只在没有设置错误时设置
@@ -186,13 +235,37 @@ export function DebateConfigForm() {
     }
   };
 
-  function getProviderFromModel(modelName: string): string {
-    if (modelName.startsWith("gpt")) return "openai";
-    if (modelName.startsWith("claude")) return "anthropic";
-    if (modelName.startsWith("gemini")) return "google";
-    if (modelName.startsWith("deepseek")) return "deepseek";
-    return "openai";
-  }
+  // 观众管理函数
+  const addAudience = () => {
+    const newId = `audience-${audiences.length + 1}`;
+    setAudiences([
+      ...audiences,
+      {
+        id: newId,
+        audience_type: "rational",
+        model_provider: "openai",
+        model_name: "",
+        api_key: "",
+        base_url: "",
+      },
+    ]);
+  };
+
+  const removeAudience = (id: string) => {
+    if (audiences.length <= 1) {
+      setError("至少需要一个观众");
+      return;
+    }
+    setAudiences(audiences.filter((a) => a.id !== id));
+  };
+
+  const updateAudience = (id: string, field: keyof AudienceConfig, value: string | boolean) => {
+    setAudiences(
+      audiences.map((a) =>
+        a.id === id ? { ...a, [field]: value } : a
+      )
+    );
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -313,18 +386,14 @@ export function DebateConfigForm() {
           <h3 className="font-medium">正方辩手</h3>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="block text-sm font-medium">模型</label>
+              <label className="block text-sm font-medium">协议类型</label>
               <select
-                name="pro_model"
-                required
+                name="pro_provider"
                 className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="gpt-4">GPT-4</option>
-                <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                <option value="claude-3-opus">Claude 3 Opus</option>
-                <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                <option value="gemini-pro">Gemini Pro</option>
+                <option value="openai">OpenAI 兼容协议</option>
+                <option value="anthropic">Anthropic 兼容协议</option>
+                <option value="google">Google 兼容协议</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -340,6 +409,43 @@ export function DebateConfigForm() {
               </select>
             </div>
           </div>
+
+          {/* 模型名称 */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">模型名称 *</label>
+            <input
+              type="text"
+              name="pro_model"
+              placeholder="例如: gpt-4, claude-3-opus, gemini-pro, qwen3-max"
+              required
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-muted-foreground">填写端点支持的模型名称</p>
+          </div>
+
+          {/* API 端点 */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">API 端点</label>
+            <input
+              type="url"
+              name="pro_base_url"
+              placeholder="可选：自定义端点（留空使用官方地址）"
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-muted-foreground">例如使用代理时填写</p>
+          </div>
+
+          {/* API 密钥 */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">API 密钥</label>
+            <input
+              type="password"
+              name="pro_api_key"
+              placeholder="可选：留空使用环境变量中的默认密钥"
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-muted-foreground">留空则使用环境变量中的默认密钥</p>
+          </div>
         </div>
 
         {/* 反方辩手 */}
@@ -347,18 +453,14 @@ export function DebateConfigForm() {
           <h3 className="font-medium">反方辩手</h3>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="block text-sm font-medium">模型</label>
+              <label className="block text-sm font-medium">协议类型</label>
               <select
-                name="con_model"
-                required
+                name="con_provider"
                 className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="gpt-4">GPT-4</option>
-                <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                <option value="claude-3-opus">Claude 3 Opus</option>
-                <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                <option value="gemini-pro">Gemini Pro</option>
+                <option value="openai">OpenAI 兼容协议</option>
+                <option value="anthropic">Anthropic 兼容协议</option>
+                <option value="google">Google 兼容协议</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -374,54 +476,192 @@ export function DebateConfigForm() {
               </select>
             </div>
           </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">模型名称 *</label>
+            <input
+              type="text"
+              name="con_model"
+              placeholder="例如: gpt-4, claude-3-opus, gemini-pro, qwen3-max"
+              required
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-muted-foreground">填写端点支持的模型名称</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">API 端点</label>
+            <input
+              type="url"
+              name="con_base_url"
+              placeholder="可选：自定义端点（留空使用官方地址）"
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-muted-foreground">例如使用代理时填写</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">API 密钥</label>
+            <input
+              type="password"
+              name="con_api_key"
+              placeholder="可选：留空使用环境变量中的默认密钥"
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-muted-foreground">留空则使用环境变量中的默认密钥</p>
+          </div>
         </div>
 
         {/* 裁判 */}
         <div className="space-y-3 p-4 border rounded-lg">
           <h3 className="font-medium">裁判</h3>
           <div className="space-y-2">
-            <label className="block text-sm font-medium">模型</label>
+            <label className="block text-sm font-medium">协议类型</label>
             <select
-              name="judge_model"
-              required
+              name="judge_provider"
               className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <option value="gpt-4">GPT-4</option>
-              <option value="claude-3-opus">Claude 3 Opus</option>
-              <option value="gemini-pro">Gemini Pro</option>
+              <option value="openai">OpenAI 兼容协议</option>
+              <option value="anthropic">Anthropic 兼容协议</option>
+              <option value="google">Google 兼容协议</option>
             </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">模型名称 *</label>
+            <input
+              type="text"
+              name="judge_model"
+              placeholder="例如: gpt-4, claude-3-opus, gemini-pro"
+              required
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-muted-foreground">填写端点支持的模型名称</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">API 端点</label>
+            <input
+              type="url"
+              name="judge_base_url"
+              placeholder="可选：自定义端点（留空使用官方地址）"
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-muted-foreground">例如使用代理时填写</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">API 密钥</label>
+            <input
+              type="password"
+              name="judge_api_key"
+              placeholder="可选：留空使用环境变量中的默认密钥"
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-muted-foreground">留空则使用环境变量中的默认密钥</p>
           </div>
         </div>
 
         {/* 观众 */}
         <div className="space-y-3 p-4 border rounded-lg">
-          <h3 className="font-medium">观众</h3>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">类型</label>
-              <select
-                name="audience_type"
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="rational">理性逻辑派</option>
-                <option value="pragmatic">现实可行性派</option>
-                <option value="technical">技术专业派</option>
-                <option value="risk-averse">风险厌恶派</option>
-                <option value="emotional">情感共鸣派</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">数量</label>
-              <input
-                type="number"
-                name="audience_count"
-                min={1}
-                max={10}
-                defaultValue={5}
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium">观众 ({audiences.length})</h3>
+            <button
+              type="button"
+              onClick={addAudience}
+              className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              + 添加观众
+            </button>
           </div>
+
+          {audiences.map((audience, index) => (
+            <div key={audience.id} className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-900 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium">观众 {index + 1}</h4>
+                {audiences.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeAudience(audience.id)}
+                    className="text-sm text-red-600 hover:text-red-700"
+                  >
+                    删除
+                  </button>
+                )}
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* 观众类型 */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">类型</label>
+                  <select
+                    value={audience.audience_type}
+                    onChange={(e) => updateAudience(audience.id, "audience_type", e.target.value)}
+                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="rational">理性逻辑派</option>
+                    <option value="pragmatic">现实可行性派</option>
+                    <option value="technical">技术专业派</option>
+                    <option value="risk-averse">风险厌恶派</option>
+                    <option value="emotional">情感共鸣派</option>
+                  </select>
+                </div>
+
+                {/* 协议类型 */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">协议类型</label>
+                  <select
+                    value={audience.model_provider}
+                    onChange={(e) => updateAudience(audience.id, "model_provider", e.target.value)}
+                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="openai">OpenAI 兼容协议</option>
+                    <option value="anthropic">Anthropic 兼容协议</option>
+                    <option value="google">Google 兼容协议</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 模型名称 */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">模型名称</label>
+                <input
+                  type="text"
+                  value={audience.model_name}
+                  onChange={(e) => updateAudience(audience.id, "model_name", e.target.value)}
+                  placeholder="例如: gpt-4, claude-3-opus, gemini-pro, qwen3-max"
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <p className="text-xs text-muted-foreground">填写端点支持的模型名称（留空使用默认模型）</p>
+              </div>
+
+              {/* API 端点 */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">API 端点</label>
+                <input
+                  type="url"
+                  value={audience.base_url}
+                  onChange={(e) => updateAudience(audience.id, "base_url", e.target.value)}
+                  placeholder="可选：自定义端点（留空使用官方地址）"
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <p className="text-xs text-muted-foreground">例如使用代理时填写</p>
+              </div>
+
+              {/* API 密钥 */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">API 密钥</label>
+                <input
+                  type="password"
+                  value={audience.api_key}
+                  onChange={(e) => updateAudience(audience.id, "api_key", e.target.value)}
+                  placeholder="可选：留空使用环境变量中的默认密钥"
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <p className="text-xs text-muted-foreground">留空则使用环境变量中的默认密钥</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

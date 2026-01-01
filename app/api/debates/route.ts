@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
         stance: agentConfig.stance,
         model_provider: agentConfig.model_provider,
         model_name: agentConfig.model_name,
+        api_key: agentConfig.api_key,
+        base_url: agentConfig.base_url,
         style_tag: agentConfig.style_tag,
         audience_type: agentConfig.audience_type,
         config: agentConfig.config,

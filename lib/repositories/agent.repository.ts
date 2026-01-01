@@ -17,8 +17,8 @@ export class AgentRepository {
     const agentId = input.id ?? generateAgentId();
 
     db.prepare(
-      `INSERT INTO agents (id, debate_id, role, stance, model_provider, model_name, style_tag, audience_type, config)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO agents (id, debate_id, role, stance, model_provider, model_name, api_key, base_url, style_tag, audience_type, config)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .run(
         agentId,
@@ -27,6 +27,8 @@ export class AgentRepository {
         input.stance ?? null,
         input.model_provider,
         input.model_name,
+        input.api_key ?? null,
+        input.base_url ?? null,
         input.style_tag ?? null,
         input.audience_type ?? null,
         input.config ? JSON.stringify(input.config) : null

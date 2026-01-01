@@ -155,6 +155,17 @@ export class MessageRepository {
   }
 
   /**
+   * 删除辩论的所有消息（通过子查询删除）
+   */
+  deleteByDebateId(debateId: number): number {
+    const db = getDb();
+    const result = db
+      .prepare(`DELETE FROM messages WHERE round_id IN (SELECT id FROM rounds WHERE debate_id = ?)`)
+      .run(debateId);
+    return result.changes;
+  }
+
+  /**
    * 统计轮次的消息数量
    */
   countByRoundId(roundId: number): number {
@@ -178,6 +189,20 @@ export class MessageRepository {
       )
       .get(debateId) as { count: number };
     return result.count;
+  }
+
+  /**
+   * 获取辩论的轮次列表（用于投票服务）
+   */
+  getRoundsByDebateId(debateId: number): Array<{ id: number; sequence: number }> {
+    const db = getDb();
+    return db
+      .prepare(
+        `SELECT id, sequence FROM rounds
+         WHERE debate_id = ?
+         ORDER BY sequence`
+      )
+      .all(debateId) as Array<{ id: number; sequence: number }>;
   }
 }
 

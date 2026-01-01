@@ -123,42 +123,42 @@
 
 ### Tests for User Story 2
 
-- [ ] T046 [P] [US2] Contract test for POST /api/debates/[id]/start in tests/contract/debate-start.test.ts
-- [ ] T047 [P] [US2] Integration test for 10-round debate flow in tests/integration/debate-flow.test.ts
+- [X] T046 [P] [US2] Contract test for POST /api/debates/[id]/start in tests/contract/debate-start.test.ts
+- [X] T047 [P] [US2] Integration test for 10-round debate flow in tests/integration/debate-flow.test.ts
 
 ### LangChain Agent 层 (US2 基础)
 
-- [ ] T048 [P] [US2] 实现 lib/agents/prompts/debater-prompts.ts 辩手 Prompt 模板
-- [ ] T049 [P] [US2] 实现 lib/agents/prompts/judge-prompts.ts 裁判 Prompt 模板
-- [ ] T050 [P] [US2] 实现 lib/agents/prompts/audience-prompts.ts 观众 Prompt 模板
-- [ ] T051 [P] [US2] 实现 lib/agents/chains/debater-chain.ts 辩手 Chain 实现
-- [ ] T052 [P] [US2] 实现 lib/agents/chains/judge-chain.ts 裁判 Chain 实现
-- [ ] T053 [P] [US2] 实现 lib/agents/chains/audience-chain.ts 观众 Chain 实现
-- [ ] T054 [P] [US2] 实现 lib/agents/tools/score-tool.ts 评分工具
-- [ ] T055 [P] [US2] 实现 lib/agents/tools/request-tool.ts 观众申请工具
-- [ ] T056 [US2] 实现 lib/services/memory-service.ts Agent 记忆管理服务 (依赖 T054, T055)
+- [X] T048 [P] [US2] 实现 lib/agents/prompts/debater-prompts.ts 辩手 Prompt 模板
+- [X] T049 [P] [US2] 实现 lib/agents/prompts/judge-prompts.ts 裁判 Prompt 模板
+- [X] T050 [P] [US2] 实现 lib/agents/prompts/audience-prompts.ts 观众 Prompt 模板
+- [X] T051 [P] [US2] 实现 lib/agents/chains/debater-chain.ts 辩手 Chain 实现
+- [X] T052 [P] [US2] 实现 lib/agents/chains/judge-chain.ts 裁判 Chain 实现
+- [X] T053 [P] [US2] 实现 lib/agents/chains/audience-chain.ts 观众 Chain 实现
+- [X] T054 [P] [US2] 实现 lib/agents/tools/score-tool.ts 评分工具
+- [X] T055 [P] [US2] 实现 lib/agents/tools/request-tool.ts 观众申请工具
+- [X] T056 [US2] 实现 lib/services/memory-service.ts Agent 记忆管理服务 (依赖 T054, T055)
 
 ### LangChain 集成服务 (US2 核心)
 
-- [ ] T057 [US2] 实现 lib/services/langchain-service.ts LangChain 集成服务，包含 streamChain 和 invokeChain 方法 (依赖 T051, T052, T053, T056)
-- [ ] T058 [US2] 实现辩论流程 10 轮阶段判断逻辑 (opening/rebuttal/closing)
+- [X] T057 [US2] 实现 lib/services/langchain-service.ts LangChain 集成服务，包含 streamChain 和 invokeChain 方法 (依赖 T051, T052, T053, T056)
+- [X] T058 [US2] 实现辩论流程 10 轮阶段判断逻辑 (opening/rebuttal/closing)
 
 ### 辩论流程编排服务 (US2 核心)
 
-- [ ] T059 [US2] 实现 lib/services/debate-service.ts 辩论流程编排服务 (依赖 T037, T057)
-- [ ] T060 [US2] 实现辩论会话状态管理 (pending → running → completed)
-- [ ] T061 [US2] 实现单轮辩论执行逻辑 (Pro 发言 → Con 发言 → 裁判评分)
-- [ ] T062 [US2] 实现观众申请下场发言的审批流程 (第 3-6 轮)
-- [ ] T063 [US2] 实现 LLM API 调用失败的重试机制
-- [ ] T064 [US2] 实现超时处理和错误恢复逻辑
+- [X] T059 [US2] 实现 lib/services/debate-service.ts 辩论流程编排服务 (依赖 T037, T057)
+- [X] T060 [US2] 实现辩论会话状态管理 (pending → running → completed)
+- [X] T061 [US2] 实现单轮辩论执行逻辑 (Pro 发言 → Con 发言 → 裁判评分)
+- [X] T062 [US2] 实现观众申请下场发言的审批流程 (第 3-6 轮)
+- [X] T063 [US2] 实现 LLM API 调用失败的重试机制
+- [X] T064 [US2] 实现超时处理和错误恢复逻辑
 
 ### API 端点 (US2 接口)
 
-- [ ] T065 [US2] 实现 app/api/debates/[id]/start/route.ts POST 启动辩论 API 端点 (依赖 T059)
-- [ ] T066 [US2] 实现 app/api/debates/[id]/stop/route.ts POST 停止辩论 API 端点
-- [ ] T067 [US2] 实现 app/api/debates/[id]/stream/route.ts GET SSE 实时推送端点
+- [X] T065 [US2] 实现 app/api/debates/[id]/start/route.ts POST 启动辩论 API 端点 (依赖 T059)
+- [X] T066 [US2] 实现 app/api/debates/[id]/stop/route.ts POST 停止辩论 API 端点
+- [X] T067 [US2] 实现 app/api/debates/[id]/stream/route.ts GET SSE 实时推送端点
 
-**Checkpoint**: 用户故事 2 完整功能且可独立测试
+**Checkpoint**: ✅ 用户故事 2 完成 - 所有任务已完成（包括观众申请发言功能）
 
 ---
 
@@ -170,19 +170,19 @@
 
 ### Tests for User Story 3
 
-- [ ] T068 [P] [US3] Unit test for judge scoring in tests/unit/chains/judge-chain.test.ts
-- [ ] T069 [P] [US3] Integration test for final judgment in tests/integration/judgment.test.ts
+- [X] T068 [P] [US3] Unit test for judge scoring in tests/unit/chains/judge-chain.test.ts
+- [X] T069 [P] [US3] Integration test for final judgment in tests/integration/judgment.test.ts
 
 ### Implementation for User Story 3
 
-- [ ] T070 [P] [US3] 扩展 lib/agents/chains/judge-chain.ts 添加犯规检测逻辑
-- [ ] T071 [US3] 实现裁判评分的结构化输出验证 (zod schema)
-- [ ] T072 [US3] 实现 lib/services/scoring-service.ts 评分计算服务 (依赖 T070, T071)
-- [ ] T073 [US3] 实现最终裁决生成逻辑 (胜负判定、关键转折回合、决胜论点)
-- [ ] T074 [US3] 实现犯规记录和处罚逻辑
-- [ ] T075 [US3] 实现 app/api/debates/[id]/report/route.ts GET 获取复盘报告 API 端点
+- [X] T070 [P] [US3] 扩展 lib/agents/chains/judge-chain.ts 添加犯规检测逻辑 (已存在于之前的实现)
+- [X] T071 [US3] 实现裁判评分的结构化输出验证 (zod schema)
+- [X] T072 [US3] 实现 lib/services/scoring-service.ts 评分计算服务
+- [X] T073 [US3] 实现最终裁决生成逻辑 (胜负判定、关键转折回合、决胜论点)
+- [X] T074 [US3] 实现犯规记录和处罚逻辑
+- [X] T075 [US3] 实现 app/api/debates/[id]/report/route.ts GET 获取复盘报告 API 端点
 
-**Checkpoint**: 用户故事 3 完整功能且可独立测试
+**Checkpoint**: ✅ 用户故事 3 完成 - 所有任务已完成
 
 ---
 
@@ -199,15 +199,15 @@
 
 ### Implementation for User Story 4
 
-- [ ] T078 [P] [US4] 扩展 lib/agents/chains/audience-chain.ts 添加投票逻辑
-- [ ] T079 [US4] 实现观众投票的结构化输出验证 (zod schema)
-- [ ] T080 [US4] 实现 lib/services/voting-service.ts 投票汇总服务 (依赖 T078, T079)
-- [ ] T081 [US4] 实现加权胜负计算逻辑 (裁判权重 + 观众权重)
-- [ ] T082 [US4] 实现观众视角分歧分析逻辑
-- [ ] T083 [US4] 实现双方盲点分析逻辑
-- [ ] T084 [US4] 扩展复盘报告 API 返回观众投票和分歧分析
+- [X] T078 [P] [US4] 扩展 lib/agents/chains/audience-chain.ts 添加投票逻辑
+- [X] T079 [US4] 实现观众投票的结构化输出验证 (zod schema)
+- [X] T080 [US4] 实现 lib/services/voting-service.ts 投票汇总服务 (依赖 T078, T079)
+- [X] T081 [US4] 实现加权胜负计算逻辑 (裁判权重 + 观众权重)
+- [X] T082 [US4] 实现观众视角分歧分析逻辑
+- [X] T083 [US4] 实现双方盲点分析逻辑
+- [X] T084 [US4] 扩展复盘报告 API 返回观众投票和分歧分析
 
-**Checkpoint**: 用户故事 4 完整功能且可独立测试
+**Checkpoint**: ✅ 用户故事 4 完成 - 核心功能已完成（测试待补充）
 
 ---
 
@@ -227,12 +227,12 @@
 - [ ] T087 [P] [US5] 实现 lib/repositories/round.repository.ts 添加轮次关联查询方法
 - [ ] T088 [P] [US5] 实现 lib/repositories/message.repository.ts 添加发言按时间顺序查询方法
 - [ ] T089 [P] [US5] 实现 lib/repositories/score.repository.ts 添加评分汇总查询方法
-- [ ] T090 [US5] 实现 app/api/debates/[id]/rounds/route.ts GET 获取轮次列表 API 端点
-- [ ] T091 [US5] 实现 app/api/debates/[id]/rounds/[sequence]/route.ts GET 获取单轮详情 API 端点
+- [X] T090 [US5] 实现 app/api/debates/[id]/rounds/route.ts GET 获取轮次列表 API 端点
+- [X] T091 [US5] 实现 app/api/debates/[id]/rounds/[sequence]/route.ts GET 获取单轮详情 API 端点
 - [ ] T092 [US5] 实现数据完整性验证 (外键约束检查)
-- [ ] T093 [US5] 实现数据导出功能 (JSON 格式归档)
+- [X] T093 [US5] 实现数据导出功能 (JSON 格式归档)
 
-**Checkpoint**: 用户故事 5 完整功能且可独立测试
+**Checkpoint**: ✅ 用户故事 5 核心功能已完成 - API 端点和数据导出（测试和部分仓库方法待补充）
 
 ---
 
@@ -244,16 +244,16 @@
 
 ### Web 组件实现
 
-- [ ] T094 [P] 实现 app/(web)/layout.tsx Web 应用布局
-- [ ] T095 [P] 实现 components/layout/header.tsx 导航头部组件
-- [ ] T096 [P] 实现 app/(web)/debate/[id]/page.tsx 辩论观看页面
-- [ ] T097 [P] 实现 components/debate/debate-viewer.tsx 实时辩论观看器组件（SSE 客户端）
-- [ ] T098 [P] 实现 components/debate/score-card.tsx 评分卡片组件
-- [ ] T099 [P] 实现 components/debate/replay-report.tsx 复盘报告展示组件
-- [ ] T100 [P] 实现 app/(web)/history/page.tsx 历史记录页面
-- [ ] T101 实现 SSE 自动重连和断线处理逻辑
-- [ ] T102 实现辩论进度可视化展示
-- [ ] T103 实现错误提示和加载状态展示
+- [X] T094 [P] 实现 app/(web)/layout.tsx Web 应用布局
+- [X] T095 [P] 实现 components/layout/header.tsx 导航头部组件
+- [X] T096 [P] 实现 app/(web)/debate/[id]/page.tsx 辩论观看页面
+- [X] T097 [P] 实现 components/debate/debate-viewer.tsx 实时辩论观看器组件（SSE 客户端）
+- [X] T098 [P] 实现 components/debate/score-card.tsx 评分卡片组件
+- [X] T099 [P] 实现 components/debate/replay-report.tsx 复盘报告展示组件
+- [X] T100 [P] 实现 app/(web)/history/page.tsx 历史记录页面
+- [X] T101 实现 SSE 自动重连和断线处理逻辑
+- [X] T102 实现辩论进度可视化展示
+- [X] T103 实现错误提示和加载状态展示
 
 ### E2E 测试
 
@@ -262,7 +262,7 @@
 - [ ] T106 测试实时观看辩论流程 E2E
 - [ ] T107 测试查询历史记录流程 E2E
 
-**Checkpoint**: Web 界面完整功能
+**Checkpoint**: ✅ Web 界面核心功能已完成（E2E 测试待补充）
 
 ---
 
@@ -270,23 +270,23 @@
 
 **Purpose**: 跨用户故事的改进和质量保证
 
-- [ ] T108 [P] 创建 README.md 项目说明文档
-- [ ] T109 [P] 创建 CONTRIBUTING.md 贡献指南文档
-- [ ] T110 代码清理和重构
+- [X] T108 [P] 创建 README.md 项目说明文档
+- [X] T109 [P] 创建 CONTRIBUTING.md 贡献指南文档
+- [X] T110 代码清理和重构
 - [ ] T111 性能优化 (数据库查询、LLM 调用并发)
 - [ ] T112 [P] 补充单元测试覆盖关键路径
-- [ ] T113 安全加固 (API 密钥管理、SQL 注入防护)
+- [X] T113 安全加固 (API 密钥管理、SQL 注入防护)
 - [ ] T114 运行 quickstart.md 验证开发环境设置
 
 ### Quality Gates (Constitution Compliance)
 
-- [ ] T115 验证所有代码通过 ESLint 检查，零错误
-- [ ] T116 验证 TypeScript 类型安全，无隐式 any 类型
-- [ ] T117 验证错误消息清晰且可操作
+- [X] T115 验证所有代码通过 ESLint 检查，零错误
+- [X] T116 验证 TypeScript 类型安全，无隐式 any 类型
+- [X] T117 验证错误消息清晰且可操作
 - [ ] T118 验证 API 响应格式一致性
 - [ ] T119 验证性能要求 (单轮 < 3 分钟，SSE < 100ms，查询 < 1 秒)
-- [ ] T120 验证所有文档使用中文编写
-- [ ] T121 验证代码注释和 API 文档使用中文
+- [X] T120 验证所有文档使用中文编写
+- [X] T121 验证代码注释和 API 文档使用中文
 - [ ] T122 运行静态分析和安全扫描
 
 ---

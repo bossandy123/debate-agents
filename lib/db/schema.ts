@@ -5,6 +5,9 @@ import Database from "better-sqlite3";
  * 创建所有必需的表、索引和约束
  */
 export function initSchema(db: Database.Database): void {
+  // 首先尝试添加新列（用于迁移现有数据库）
+  migrateAgentsTable(db);
+
   // debates 表 - 辩论会话
   db.exec(`
     CREATE TABLE IF NOT EXISTS debates (
@@ -35,6 +38,8 @@ export function initSchema(db: Database.Database): void {
       stance TEXT,
       model_provider TEXT NOT NULL,
       model_name TEXT NOT NULL,
+      api_key TEXT,
+      base_url TEXT,
       style_tag TEXT,
       audience_type TEXT,
       config TEXT,
@@ -184,4 +189,31 @@ export function validateSchema(db: Database.Database): boolean {
   }
 
   return true;
+}
+
+/**
+ * 迁移 agents 表，添加 api_key 和 base_url 列
+ * 用于支持自定义 LLM 端点和 API 密钥
+ */
+function migrateAgentsTable(db: Database.Database): void {
+  try {
+    // 检查列是否已存在
+    const columns = db.pragma("table_info(agents)") as Array<{ name: string }>;
+    const columnNames = new Set(columns.map((c) => c.name));
+
+    // 添加 api_key 列
+    if (!columnNames.has("api_key")) {
+      db.exec("ALTER TABLE agents ADD COLUMN api_key TEXT;");
+      console.log("Added api_key column to agents table");
+    }
+
+    // 添加 base_url 列
+    if (!columnNames.has("base_url")) {
+      db.exec("ALTER TABLE agents ADD COLUMN base_url TEXT;");
+      console.log("Added base_url column to agents table");
+    }
+  } catch (error) {
+    // 列可能已存在或其他错误，忽略
+    console.debug("Migration note:", (error as Error).message);
+  }
 }
