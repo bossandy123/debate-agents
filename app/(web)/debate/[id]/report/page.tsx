@@ -92,11 +92,11 @@ export default async function DebateReportPage({ params }: ReportPageProps) {
     );
   }
 
-  const { debate, judgment, rounds, round_summaries } = reportData;
+  const { debate, judgment, rounds } = reportData;
 
-  // 计算总评分
-  const proTotal = round_summaries?.reduce((sum: number, r: { pro_total?: number }) => sum + (r.pro_total || 0), 0) || 0;
-  const conTotal = round_summaries?.reduce((sum: number, r: { con_total?: number }) => sum + (r.con_total || 0), 0) || 0;
+  // 使用最终评分（包含裁判评分和观众投票的加权结果）
+  const proTotal = judgment?.final_scores?.pro || 0;
+  const conTotal = judgment?.final_scores?.con || 0;
 
   return (
     <>

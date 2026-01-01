@@ -93,7 +93,6 @@ class LangChainService {
         : debateId
           ? (token: string) => {
               // 通过 SSE 广播 token
-              console.log(`[LangChainService] 发送 token: ${token.substring(0, 20)}...`);
               sseService.broadcast(debateId, {
                 type: "token",
                 data: { token },

@@ -213,9 +213,8 @@ export function DebateConfigForm() {
         throw new Error(result.error || "创建辩论失败");
       }
 
-      // 先跳转到辩论详情页，让前端建立 SSE 连接后再启动
-      // 使用查询参数指示页面在加载后自动启动辩论
-      router.push(`/debate/${result.id}?autoStart=true`);
+      // 跳转到辩论详情页，用户需要手动点击启动按钮
+      router.push(`/debate/${result.id}`);
     } catch (err) {
       if (!error) {  // 只在没有设置错误时设置
         setError(err instanceof Error ? err.message : String(err));

@@ -34,11 +34,6 @@ export function Header() {
               </Link>
             </nav>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              基于 LangChain + Next.js 15
-            </span>
-          </div>
         </div>
       </div>
     </header>

@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { DebateViewer } from "./debate-viewer";
 import { StartDebateButton } from "./start-debate-button";
 import { StopDebateButton } from "./stop-debate-button";
@@ -20,15 +20,15 @@ interface DebatePageWrapperProps {
 export function DebatePageWrapper({ debateId, initialStatus, topic, maxRounds }: DebatePageWrapperProps) {
   const [status, setStatus] = useState(initialStatus);
 
-  const handleStarted = () => {
-    // 启动成功后更新状态
+  const handleStarted = useCallback(() => {
+    // 启动成功后更新状态（不重新挂载组件）
     setStatus("running");
-  };
+  }, []);
 
-  const handleStopped = () => {
+  const handleStopped = useCallback(() => {
     // 停止成功后更新状态
     setStatus("failed");
-  };
+  }, []);
 
   return (
     <>
@@ -51,14 +51,21 @@ export function DebatePageWrapper({ debateId, initialStatus, topic, maxRounds }:
         </div>
         <div className="flex gap-3">
           {status === 'pending' && (
-            <StartDebateButton debateId={debateId} onStarted={handleStarted} />
+            <StartDebateButton
+              debateId={debateId}
+              onStarted={handleStarted}
+            />
           )}
           {status === 'running' && (
             <StopDebateButton debateId={debateId} onStopped={handleStopped} />
           )}
         </div>
       </div>
-      <DebateViewer debateId={debateId} initialStatus={status} maxRounds={maxRounds} />
+      <DebateViewer
+        debateId={debateId}
+        initialStatus={status}
+        maxRounds={maxRounds}
+      />
     </>
   );
 }

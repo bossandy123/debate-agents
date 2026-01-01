@@ -176,11 +176,31 @@ export function createStreamingDebaterChain() {
     const stream = await llm.stream([["human", prompt]]);
 
     for await (const chunk of stream) {
-      const token = typeof chunk === "string" ? chunk : chunk.content;
-      fullContent += token;
-      tokenCount++; // 简单估算：每个 chunk 算一个 token
-      if (onToken) {
-        onToken(token as string);
+      // 处理不同类型的 chunk
+      let token = "";
+      if (typeof chunk === "string") {
+        token = chunk;
+      } else if (chunk.content) {
+        if (typeof chunk.content === "string") {
+          token = chunk.content;
+        } else if (Array.isArray(chunk.content) && chunk.content.length > 0) {
+          // 处理复杂内容类型
+          const firstContent = chunk.content[0];
+          if (typeof firstContent === "string") {
+            token = firstContent;
+          } else if (firstContent && typeof firstContent === "object" && "text" in firstContent) {
+            token = (firstContent as { text: string }).text;
+          }
+        }
+      }
+
+      // 只处理非空 token
+      if (token) {
+        fullContent += token;
+        tokenCount++;
+        if (onToken) {
+          onToken(token);
+        }
       }
     }
 

@@ -17,6 +17,7 @@ export function StartDebateButton({ debateId, onStarted }: StartDebateButtonProp
   const [error, setError] = useState<string | null>(null);
 
   const handleStart = async () => {
+    console.log(`[StartDebateButton] 启动辩论, debateId=${debateId}, time=${new Date().toISOString()}`);
     setIsStarting(true);
     setError(null);
 
@@ -30,9 +31,11 @@ export function StartDebateButton({ debateId, onStarted }: StartDebateButtonProp
         throw new Error(result.error || "启动辩论失败");
       }
 
+      console.log(`[StartDebateButton] 启动成功, time=${new Date().toISOString()}`);
       // 启动成功，通知父组件更新状态
       onStarted?.();
     } catch (err) {
+      console.error(`[StartDebateButton] 启动失败:`, err);
       setError(err instanceof Error ? err.message : String(err));
       setIsStarting(false);
     }

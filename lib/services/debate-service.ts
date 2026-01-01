@@ -135,7 +135,10 @@ class DebateService {
       // 更新辩论状态
       debateRepository.setStarted(debateId);
 
-      // 发送辩论开始事件
+      // 注意：不再等待 SSE 订阅者，因为 Next.js 开发模式的热重载会导致订阅者丢失
+      // 前端会通过轮询数据库状态来同步
+
+      // 发送辩论开始事件（如果有订阅者的话）
       sseService.broadcast(debateId, {
         type: "debate_start",
         data: {
