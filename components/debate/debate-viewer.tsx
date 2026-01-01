@@ -7,6 +7,10 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 
 // 评分卡片组件
 function ScoreCard({ scoreData, roundId, onClose }: { scoreData: ScoreUpdate; roundId: number; onClose: () => void }) {
@@ -544,14 +548,14 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
       )}
 
       {/* 辩论内容 */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border p-4 relative">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">辩论内容</h3>
+      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border p-6 relative">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">辩论内容</h3>
           {/* 滚动到底部按钮 */}
           {showScrollToBottom && (
             <button
               onClick={scrollToBottom}
-              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-1"
+              className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md flex items-center gap-2"
               title="滚动到底部"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -564,12 +568,19 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
         <div
           ref={messagesContainerRef}
           onScroll={handleScroll}
-          className="space-y-4 max-h-[600px] overflow-y-auto"
+          className="space-y-6 max-h-[600px] overflow-y-auto pr-2"
         >
           {messages.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-8">
-              {status === 'pending' ? '等待辩论开始...' : '等待发言...'}
-            </p>
+            <div className="text-center py-12">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full mb-4">
+                <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400">
+                {status === 'pending' ? '等待辩论开始...' : '等待发言...'}
+              </p>
+            </div>
           ) : (
             messages.map((msg, index) => {
               // 检查这条消息是否是某轮的最后一个消息
@@ -579,43 +590,101 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
               const scoreData = roundId !== undefined ? scores.get(Number(roundId)) : undefined;
 
               return (
-                <div key={msg.id}>
+                <div key={msg.id} className="group">
                   <div
-                    className={`p-4 rounded-lg ${
+                    className={`p-5 rounded-xl shadow-sm transition-all ${
                       msg.role === 'audience'
-                        ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800'
-                        : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                        ? 'bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200 dark:border-purple-800'
+                        : msg.stance === 'pro'
+                          ? 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 border border-blue-200 dark:border-blue-800'
+                          : 'bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/30 dark:to-orange-900/30 border border-red-200 dark:border-red-800'
                     } ${msg.streaming ? 'animate-pulse' : ''}`}
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${
                         msg.role === 'audience'
-                          ? 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200'
+                          ? 'bg-purple-500 text-white'
                           : msg.stance === 'pro'
-                            ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
-                            : 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-red-500 text-white'
                       }`}>
-                        {msg.role === 'audience' ? '观众' : msg.stance === 'pro' ? '正方' : '反方'}
-                        {msg.streaming && ' (生成中...)'}
-                      </span>
-                      <span className="text-xs text-slate-500">
+                        {msg.role === 'audience' ? (
+                          <>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                            </svg>
+                            观众
+                          </>
+                        ) : msg.stance === 'pro' ? (
+                          <>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            正方
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            </svg>
+                            反方
+                          </>
+                        )}
+                        {msg.streaming && (
+                          <span className="ml-1">
+                            <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                         {new Date(msg.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
-                    <p className="text-sm whitespace-pre-wrap">
-                      {msg.content || (msg.streaming ? '正在思考...' : '')}
-                    </p>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      {msg.content ? (
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw, rehypeSanitize]}
+                          components={{
+                            p: ({ children }) => <p className="mb-2 last:mb-0 text-slate-700 dark:text-slate-300">{children}</p>,
+                            ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                            ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                            li: ({ children }) => <li className="text-slate-700 dark:text-slate-300">{children}</li>,
+                            strong: ({ children }) => <strong className="font-bold text-slate-900 dark:text-slate-100">{children}</strong>,
+                            em: ({ children }) => <em className="italic text-slate-700 dark:text-slate-300">{children}</em>,
+                            code: ({ className, children }) => {
+                              const isInline = !className?.includes('language-');
+                              return isInline ? (
+                                <code className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-xs font-mono text-purple-700 dark:text-purple-300">{children}</code>
+                              ) : (
+                                <code className="block p-3 bg-slate-900 dark:bg-slate-950 rounded-lg text-xs font-mono text-green-400 overflow-x-auto">{children}</code>
+                              );
+                            },
+                            blockquote: ({ children }) => <blockquote className="border-l-4 border-slate-300 dark:border-slate-600 pl-4 italic text-slate-600 dark:text-slate-400">{children}</blockquote>,
+                          }}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
+                      ) : (
+                        <p className="text-slate-400 dark:text-slate-500 italic">
+                          {msg.streaming ? '正在思考...' : ''}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* 如果这条消息是某轮的最后一个消息，显示评分按钮 */}
                   {scoreData && (
-                    <div className="mt-2 flex justify-center">
+                    <div className="mt-3 flex justify-center">
                       <button
                         onClick={() => setExpandedScoreRoundId(Number(roundId))}
-                        className="px-4 py-2 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-sm rounded-full flex items-center gap-2 shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                        className="px-5 py-2.5 bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 text-white text-sm font-medium rounded-full flex items-center gap-2 shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
                         title={`查看第 ${roundId} 轮评分`}
                       >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                         查看第 {roundId} 轮评分
