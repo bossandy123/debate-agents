@@ -4,10 +4,8 @@
  */
 
 import { Header } from "@/components/layout/header";
-import { DebateViewer } from "@/components/debate/debate-viewer";
+import { DebatePageWrapper } from "@/components/debate/debate-page-wrapper";
 import { notFound } from "next/navigation";
-import { StartDebateButton } from "@/components/debate/start-debate-button";
-import { StopDebateButton } from "@/components/debate/stop-debate-button";
 
 interface DebateViewerPageProps {
   params: Promise<{ id: string }>;
@@ -38,33 +36,12 @@ export default async function DebateViewerPage({ params }: DebateViewerPageProps
         <Header />
         <main className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold">{debate.topic}</h1>
-                <p className="text-slate-600 dark:text-slate-400 mt-2">
-                  状态: <span className={`font-medium ${
-                    debate.status === 'completed' ? 'text-green-600' :
-                    debate.status === 'running' ? 'text-blue-600' :
-                    debate.status === 'failed' ? 'text-red-600' :
-                    'text-slate-600'
-                  }`}>
-                    {debate.status === 'completed' ? '已完成' :
-                     debate.status === 'running' ? '进行中' :
-                     debate.status === 'failed' ? '失败' :
-                     '等待中'}
-                  </span>
-                </p>
-              </div>
-              <div className="flex gap-3">
-                {debate.status === 'pending' && (
-                  <StartDebateButton debateId={debateId} />
-                )}
-                {debate.status === 'running' && (
-                  <StopDebateButton debateId={debateId} />
-                )}
-              </div>
-            </div>
-            <DebateViewer debateId={debateId} initialStatus={debate.status} maxRounds={debate.max_rounds} />
+            <DebatePageWrapper
+              debateId={debateId}
+              initialStatus={debate.status}
+              topic={debate.topic}
+              maxRounds={debate.max_rounds}
+            />
           </div>
         </main>
       </>

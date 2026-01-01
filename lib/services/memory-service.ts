@@ -70,13 +70,15 @@ class MemoryService {
   async addMessage(
     roundId: number,
     agentId: string,
-    content: string
+    content: string,
+    tokenCount?: number
   ): Promise<void> {
     // 保存到数据库
     await messageRepository.create({
       round_id: roundId,
       agent_id: agentId,
       content,
+      token_count: tokenCount,
     });
 
     // 清除缓存

@@ -54,6 +54,7 @@ export interface DebaterChainOutput {
   content: string;
   stance: string;
   roundNumber: number;
+  tokenCount?: number; // Token 数量（估算）
 }
 
 /**
@@ -171,20 +172,25 @@ export function createStreamingDebaterChain() {
     console.log(`[DebaterChain] 开始流式调用: model=${llmConfig.model}, provider=${llmConfig.provider}, baseURL=${llmConfig.baseURL || 'default'}`);
 
     let fullContent = "";
+    let tokenCount = 0;
     const stream = await llm.stream([["human", prompt]]);
 
     for await (const chunk of stream) {
       const token = typeof chunk === "string" ? chunk : chunk.content;
       fullContent += token;
+      tokenCount++; // 简单估算：每个 chunk 算一个 token
       if (onToken) {
         onToken(token as string);
       }
     }
 
+    console.log(`[DebaterChain] 流式完成, tokenCount=${tokenCount}, contentLength=${fullContent.length}`);
+
     yield {
       content: fullContent,
       stance,
       roundNumber,
+      tokenCount,
     };
   }
 

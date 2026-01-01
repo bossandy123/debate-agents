@@ -6,14 +6,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 interface StopDebateButtonProps {
   debateId: number;
+  onStopped?: () => void;
 }
 
-export function StopDebateButton({ debateId }: StopDebateButtonProps) {
-  const router = useRouter();
+export function StopDebateButton({ debateId, onStopped }: StopDebateButtonProps) {
   const [isStopping, setIsStopping] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,11 +30,10 @@ export function StopDebateButton({ debateId }: StopDebateButtonProps) {
         throw new Error(result.error || "停止辩论失败");
       }
 
-      // 刷新页面以更新状态
-      router.refresh();
+      // 停止成功，通知父组件更新状态
+      onStopped?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-    } finally {
       setIsStopping(false);
     }
   };

@@ -71,16 +71,23 @@ export class ScoreRepository {
    * 获取轮次的双方评分对比
    */
   getPairScoresByRoundId(roundId: number): PairScores | null {
-    const scores = this.findByRoundId(roundId);
+    const db = getDb();
+    const rows = db
+      .prepare(
+        `SELECT s.*,
+           a.stance
+         FROM scores s
+         JOIN agents a ON s.agent_id = a.id
+         WHERE s.round_id = ? AND a.stance IN ('pro', 'con')`
+      )
+      .all(roundId) as Array<Score & { stance: string }>;
 
-    if (scores.length < 2) {
+    if (rows.length < 2) {
       return null;
     }
 
-    // 假设第一个是正方，第二个是反方
-    // 实际使用时需要根据 agent_id 确认
-    const proScore = scores.find((s) => s.agent_id.includes("pro"));
-    const conScore = scores.find((s) => s.agent_id.includes("con"));
+    const proScore = rows.find((r) => r.stance === "pro");
+    const conScore = rows.find((r) => r.stance === "con");
 
     if (!proScore || !conScore) {
       return null;
@@ -136,7 +143,7 @@ export class ScoreRepository {
     const db = getDb();
     const rows = db
       .prepare(
-        `SELECT s.agent_id,
+        `SELECT a.stance,
            SUM(s.logic) as logic,
            SUM(s.rebuttal) as rebuttal,
            SUM(s.clarity) as clarity,
@@ -144,13 +151,13 @@ export class ScoreRepository {
          FROM scores s
          JOIN rounds r ON s.round_id = r.id
          JOIN agents a ON s.agent_id = a.id
-         WHERE r.debate_id = ?
-         GROUP BY s.agent_id`
+         WHERE r.debate_id = ? AND a.stance IN ('pro', 'con')
+         GROUP BY a.stance`
       )
-      .all(debateId) as Array<{ agent_id: string; logic: number; rebuttal: number; clarity: number; evidence: number }>;
+      .all(debateId) as Array<{ stance: string; logic: number; rebuttal: number; clarity: number; evidence: number }>;
 
-    const proRow = rows.find((r) => r.agent_id.includes("pro"));
-    const conRow = rows.find((r) => r.agent_id.includes("con"));
+    const proRow = rows.find((r) => r.stance === "pro");
+    const conRow = rows.find((r) => r.stance === "con");
 
     if (!proRow || !conRow) {
       return null;

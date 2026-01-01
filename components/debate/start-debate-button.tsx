@@ -6,14 +6,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 interface StartDebateButtonProps {
   debateId: number;
+  onStarted?: () => void;
 }
 
-export function StartDebateButton({ debateId }: StartDebateButtonProps) {
-  const router = useRouter();
+export function StartDebateButton({ debateId, onStarted }: StartDebateButtonProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,11 +30,10 @@ export function StartDebateButton({ debateId }: StartDebateButtonProps) {
         throw new Error(result.error || "启动辩论失败");
       }
 
-      // 刷新页面以更新状态
-      router.refresh();
+      // 启动成功，通知父组件更新状态
+      onStarted?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-    } finally {
       setIsStarting(false);
     }
   };

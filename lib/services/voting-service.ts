@@ -170,22 +170,39 @@ class VotingService {
     // 获取观众投票
     const votingResult = this.aggregateVotes(debateId);
 
-    // 归一化裁判评分（转换为0-100分制）
-    const maxPossibleJudgeScore = 40 * 10; // 4维度 * 10分 * 10轮 = 400分
-    const normalizedProJudge = (proJudgeScore / maxPossibleJudgeScore) * 100;
-    const normalizedConJudge = (conJudgeScore / maxPossibleJudgeScore) * 100;
+    // 计算实际轮次来确定最大可能分数
+    const rounds = messageRepository.getRoundsByDebateId(debateId);
+    const actualRounds = rounds.length;
+    const maxPossibleJudgeScore = actualRounds * 40; // 每轮2人，每人最多40分（4维度×10分）
 
-    // 计算观众投票得分（百分比）
-    const proAudienceScore = votingResult.pro_percentage * 100;
-    const conAudienceScore = votingResult.con_percentage * 100;
+    // 归一化裁判评分（转换为0-100分制）
+    const normalizedProJudge = maxPossibleJudgeScore > 0
+      ? (proJudgeScore / maxPossibleJudgeScore) * 100
+      : 50;
+    const normalizedConJudge = maxPossibleJudgeScore > 0
+      ? (conJudgeScore / maxPossibleJudgeScore) * 100
+      : 50;
+
+    // 计算观众投票得分（百分比，如果没有投票则为50分表示中立）
+    const proAudienceScore = votingResult.total_audience > 0
+      ? votingResult.pro_percentage * 100
+      : 50;
+    const conAudienceScore = votingResult.total_audience > 0
+      ? votingResult.con_percentage * 100
+      : 50;
 
     // 加权计算
     const proFinalScore = normalizedProJudge * judgeWeight + proAudienceScore * audienceWeight;
     const conFinalScore = normalizedConJudge * judgeWeight + conAudienceScore * audienceWeight;
 
-    // 判定胜负
+    console.log(`[VotingService] debateId=${debateId}, proJudge=${proJudgeScore}, conJudge=${conJudgeScore}, maxPossible=${maxPossibleJudgeScore}`);
+    console.log(`[VotingService] normalizedProJudge=${normalizedProJudge.toFixed(2)}, normalizedConJudge=${normalizedConJudge.toFixed(2)}`);
+    console.log(`[VotingService] proAudience=${proAudienceScore.toFixed(2)}, conAudience=${conAudienceScore.toFixed(2)}`);
+    console.log(`[VotingService] proFinal=${proFinalScore.toFixed(2)}, conFinal=${conFinalScore.toFixed(2)}, diff=${Math.abs(proFinalScore - conFinalScore).toFixed(2)}`);
+
+    // 判定胜负（使用更小的阈值：1分而不是5分）
     let winner: "pro" | "con" | "draw";
-    if (Math.abs(proFinalScore - conFinalScore) < 5) {
+    if (Math.abs(proFinalScore - conFinalScore) < 1) {
       winner = "draw";
     } else {
       winner = proFinalScore > conFinalScore ? "pro" : "con";

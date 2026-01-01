@@ -138,7 +138,7 @@ class LangChainService {
     maxRounds: number,
     llmConfig: LLMConfig,
     styleTag?: string
-  ): Promise<string> {
+  ): Promise<{ content: string; tokenCount: number }> {
     // 获取对话历史
     const history = await memoryService.getConversationHistory(debateId, roundNumber - 1);
 
@@ -167,7 +167,11 @@ class LangChainService {
       }
     );
 
-    return (result as { content: string }).content;
+    const output = result as { content: string; tokenCount?: number };
+    return {
+      content: output.content,
+      tokenCount: output.tokenCount || 0,
+    };
   }
 
   /**

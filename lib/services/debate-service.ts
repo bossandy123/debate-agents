@@ -391,7 +391,7 @@ class DebateService {
       };
 
       // 执行流式发言
-      const content = await langchainService.streamDebaterSpeech(
+      const result = await langchainService.streamDebaterSpeech(
         debateId,
         roundNumber,
         agent.id,
@@ -404,19 +404,19 @@ class DebateService {
         agent.style_tag
       );
 
-      // 保存消息到数据库
-      await memoryService.addMessage(roundId, agent.id, content);
+      // 保存消息到数据库（包含 token 数量）
+      await memoryService.addMessage(roundId, agent.id, result.content, result.tokenCount);
 
       // 发送 Agent 发言结束事件
       sseService.broadcast(debateId, {
         type: "agent_end",
         data: {
           agent_id: agent.id,
-          content,
+          content: result.content,
         },
       });
 
-      return content;
+      return result.content;
     } catch (error) {
       console.error(`Agent ${agent.id} 发言失败:`, error);
       sseService.broadcast(debateId, {
@@ -692,7 +692,7 @@ class DebateService {
           };
 
           // 执行观众发言（使用 debater chain）
-          const content = await langchainService.streamDebaterSpeech(
+          const result = await langchainService.streamDebaterSpeech(
             debateId,
             roundNumber,
             agent.id,
@@ -706,7 +706,7 @@ class DebateService {
           );
 
           // 保存消息到数据库
-          await memoryService.addMessage(roundId, agent.id, content);
+          await memoryService.addMessage(roundId, agent.id, result.content, result.tokenCount);
 
           // 发送观众发言结束事件
           sseService.broadcast(debateId, {
@@ -714,7 +714,7 @@ class DebateService {
             data: {
               agent_id: agent.id,
               audience_type: agent.audience_type,
-              content,
+              content: result.content,
             },
           });
         } catch (error) {
