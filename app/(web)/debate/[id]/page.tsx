@@ -40,6 +40,8 @@ export default async function DebateViewerPage({ params }: DebateViewerPageProps
               debateId={debateId}
               initialStatus={debate.status}
               topic={debate.topic}
+              proDefinition={debate.pro_definition}
+              conDefinition={debate.con_definition}
               maxRounds={debate.max_rounds}
             />
           </div>

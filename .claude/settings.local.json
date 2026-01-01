@@ -18,7 +18,8 @@
       "Bash(ls:*)",
       "Bash(curl:*)",
       "Bash(sqlite3:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(python3:*)"
     ]
   }
 }

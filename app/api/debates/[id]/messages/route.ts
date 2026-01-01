@@ -5,8 +5,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { debateRepository } from "@/lib/repositories/debate.repository";
-import { messageRepository } from "@/lib/repositories/message.repository";
-import { agentRepository } from "@/lib/repositories/agent.repository";
 
 export const dynamic = "force-dynamic";
 
@@ -33,24 +31,36 @@ export async function GET(
     );
   }
 
-  // 获取消息（带 Agent 信息）
-  const messages = messageRepository.findByDebateId(debateId);
+  // 获取消息（带 Agent 和 Round 信息）
+  const db = (await import("@/lib/db/client")).getDb();
+  const messages = db
+    .prepare(
+      `SELECT m.id, m.agent_id, m.content, m.created_at, r.sequence as round_sequence, a.role, a.stance
+       FROM messages m
+       JOIN rounds r ON m.round_id = r.id
+       JOIN agents a ON m.agent_id = a.id
+       WHERE r.debate_id = ?
+       ORDER BY m.created_at`
+    )
+    .all(debateId) as Array<{
+      id: number;
+      agent_id: string;
+      content: string;
+      created_at: string;
+      round_sequence: number;
+      role: string;
+      stance?: string;
+    }>;
 
-  // 获取所有 agents 信息
-  const agents = agentRepository.findByDebateId(debateId);
-  const agentMap = new Map(agents.map((a) => [a.id, a]));
-
-  // 格式化消息，添加 agent 信息
-  const formattedMessages = messages.map((msg) => {
-    const agent = agentMap.get(msg.agent_id);
-    return {
-      id: String(msg.id),
-      role: agent?.role || "unknown",
-      stance: agent?.stance,
-      content: msg.content,
-      timestamp: msg.created_at,
-    };
-  });
+  // 格式化消息
+  const formattedMessages = messages.map((msg) => ({
+    id: String(msg.id),
+    role: msg.role,
+    stance: msg.stance,
+    content: msg.content,
+    timestamp: msg.created_at,
+    roundId: msg.round_sequence,
+  }));
 
   return NextResponse.json({
     messages: formattedMessages,

@@ -4,6 +4,7 @@
  */
 
 import { Header } from "@/components/layout/header";
+import { MarkdownContent } from "@/components/debate/markdown-content";
 import { notFound } from "next/navigation";
 
 interface ReportPageProps {
@@ -159,11 +160,7 @@ export default async function DebateReportPage({ params }: ReportPageProps) {
                   </svg>
                   裁判总结
                 </h2>
-                <div className="prose dark:prose-invert max-w-none">
-                  <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                    {judgment.summary || judgment.comment}
-                  </p>
-                </div>
+                <MarkdownContent content={judgment.summary || judgment.comment} />
               </div>
             )}
 
@@ -234,9 +231,7 @@ export default async function DebateReportPage({ params }: ReportPageProps) {
                                       {new Date(msg.created_at).toLocaleString()}
                                     </span>
                                   </div>
-                                  <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
-                                    {msg.content}
-                                  </p>
+                                  <MarkdownContent content={msg.content} />
                                 </div>
                               </div>
                             );
@@ -325,9 +320,7 @@ export default async function DebateReportPage({ params }: ReportPageProps) {
                                 </div>
                                 {score.comment && (
                                   <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                                    <p className="text-xs text-slate-600 dark:text-slate-400 italic">
-                                      &quot;{score.comment}&quot;
-                                    </p>
+                                    <MarkdownContent content={`"${score.comment}"`} className="text-xs text-slate-600 dark:text-slate-400 italic" />
                                   </div>
                                 )}
                               </div>

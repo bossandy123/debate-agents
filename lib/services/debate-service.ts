@@ -380,6 +380,7 @@ class DebateService {
           agent_id: agent.id,
           role: agent.role,
           stance,
+          round_id: roundNumber,
         },
       });
 
@@ -681,6 +682,8 @@ class DebateService {
             data: {
               agent_id: agent.id,
               role: "audience",
+              stance: request.intent === "support_pro" ? "pro" : "con",
+              round_id: roundNumber,
             },
           });
 
