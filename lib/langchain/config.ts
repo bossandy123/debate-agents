@@ -77,9 +77,6 @@ export function createLLM(config: LLMConfig): BaseChatModel {
             baseURL: customBaseURL,
           },
         }),
-        // 添加 modelKwargs 以支持自定义模型名称
-        modelKwargs: {},
-        // 禁用详细日志以避免 token 计数警告
         verbose: false,
         ...commonOptions,
       });
@@ -131,9 +128,6 @@ export function createLLM(config: LLMConfig): BaseChatModel {
         configuration: {
           baseURL: customBaseURL || "https://api.deepseek.com/v1",
         },
-        // 添加 modelKwargs 以支持自定义模型名称
-        modelKwargs: {},
-        // 禁用详细日志
         verbose: false,
         ...commonOptions,
       });
@@ -155,9 +149,6 @@ export function createLLM(config: LLMConfig): BaseChatModel {
         configuration: {
           baseURL: customBaseURL,
         },
-        // 添加 modelKwargs 以支持自定义模型
-        modelKwargs: {},
-        // 禁用详细日志
         verbose: false,
         ...commonOptions,
       });

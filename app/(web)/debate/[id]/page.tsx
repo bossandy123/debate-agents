@@ -64,7 +64,7 @@ export default async function DebateViewerPage({ params }: DebateViewerPageProps
                 )}
               </div>
             </div>
-            <DebateViewer debateId={debateId} initialStatus={debate.status} />
+            <DebateViewer debateId={debateId} initialStatus={debate.status} maxRounds={debate.max_rounds} />
           </div>
         </main>
       </>

@@ -12,12 +12,14 @@ interface ReportPageProps {
 
 interface RoundMessage {
   agent_id: string;
+  stance?: string;
   content: string;
   created_at: string;
 }
 
 interface RoundScore {
   agent_id: string;
+  stance?: string;
   logic: number;
   rebuttal: number;
   clarity: number;
@@ -198,8 +200,8 @@ export default async function DebateReportPage({ params }: ReportPageProps) {
                       <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">发言记录</h4>
                       <div className="space-y-4">
                         {round.messages && round.messages.length > 0 ? (
-                          round.messages.map((msg: { agent_id: string; content: string; created_at: string }, msgIdx: number) => {
-                            const isPro = msg.agent_id?.includes('pro');
+                          round.messages.map((msg: RoundMessage, msgIdx: number) => {
+                            const isPro = msg.stance === 'pro';
                             const isFirstMsg = msgIdx === 0;
                             return (
                               <div
@@ -253,7 +255,7 @@ export default async function DebateReportPage({ params }: ReportPageProps) {
                         <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">本轮评分</h4>
                         <div className="grid grid-cols-2 gap-6">
                           {round.scores.map((score: RoundScore) => {
-                            const isPro = score.agent_id?.includes('pro');
+                            const isPro = score.stance === 'pro';
                             return (
                               <div
                                 key={score.agent_id}

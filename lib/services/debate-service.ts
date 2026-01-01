@@ -108,77 +108,90 @@ class DebateService {
       throw new Error("辩论需要正方和反方各一名辩手");
     }
 
-    // 创建会话
-    const session: DebateSession = {
-      debateId,
-      status: "running",
-      currentRound: 0,
-      totalRounds: debate.max_rounds,
-      startedAt: new Date(),
-      abortController: new AbortController(),
-    };
+    try {
+      // 创建会话
+      const session: DebateSession = {
+        debateId,
+        status: "running",
+        currentRound: 0,
+        totalRounds: debate.max_rounds,
+        startedAt: new Date(),
+        abortController: new AbortController(),
+      };
 
-    this.activeDebates.set(debateId, session);
+      this.activeDebates.set(debateId, session);
 
-    // 清理已有的轮次数据（如果是重新启动失败的辩论）
-    const existingRounds = roundRepository.findByDebateId(debateId);
-    if (existingRounds.length > 0) {
-      console.log(`清理辩论 ${debateId} 的旧轮次数据`);
-      roundRepository.deleteByDebateId(debateId);
-      // 同时清理相关的消息和评分数据
-      messageRepository.deleteByDebateId(debateId);
-      scoreRepository.deleteByDebateId(debateId);
-      audienceRequestRepository.deleteByDebateId(debateId);
+      // 清理已有的轮次数据（如果是重新启动失败的辩论）
+      const existingRounds = roundRepository.findByDebateId(debateId);
+      if (existingRounds.length > 0) {
+        console.log(`清理辩论 ${debateId} 的旧轮次数据`);
+        roundRepository.deleteByDebateId(debateId);
+        // 同时清理相关的消息和评分数据
+        messageRepository.deleteByDebateId(debateId);
+        scoreRepository.deleteByDebateId(debateId);
+        audienceRequestRepository.deleteByDebateId(debateId);
+      }
+
+      // 更新辩论状态
+      debateRepository.setStarted(debateId);
+
+      // 发送辩论开始事件
+      sseService.broadcast(debateId, {
+        type: "debate_start",
+        data: {
+          debate_id: debateId,
+          topic: debate.topic,
+          max_rounds: debate.max_rounds,
+        },
+      });
+
+      // 在后台执行辩论流程
+      this.runDebate(session).catch((error) => {
+        console.error(`辩论 ${debateId} 执行失败:`, error);
+        this.handleDebateError(debateId, error);
+      });
+    } catch (error) {
+      // 清理已创建的 session
+      this.activeDebates.delete(debateId);
+      throw error;
     }
-
-    // 更新辩论状态
-    debateRepository.setStarted(debateId);
-
-    // 发送辩论开始事件
-    sseService.broadcast(debateId, {
-      type: "debate_start",
-      data: {
-        debate_id: debateId,
-        topic: debate.topic,
-        max_rounds: debate.max_rounds,
-      },
-    });
-
-    // 在后台执行辩论流程
-    this.runDebate(session).catch((error) => {
-      console.error(`辩论 ${debateId} 执行失败:`, error);
-      this.handleDebateError(debateId, error);
-    });
   }
 
   /**
-   * 停止辩论
+   * 停止辩论（幂等操作）
    */
   stopDebate(debateId: number): void {
     const session = this.activeDebates.get(debateId);
-    if (!session) {
-      throw new Error(`辩论 ${debateId} 未在运行中`);
+
+    if (session) {
+      // 防止重复停止
+      if (session.status === "stopped") {
+        return;
+      }
+
+      session.status = "stopped";
+
+      // 中断辩论执行
+      if (session.abortController) {
+        session.abortController.abort();
+      }
+
+      // 发送停止事件
+      sseService.broadcast(debateId, {
+        type: "debate_stopped",
+        data: { debate_id: debateId },
+      });
+
+      // 清理会话
+      this.activeDebates.delete(debateId);
+      sseService.clearDebate(debateId);
     }
 
-    // 中断辩论
-    if (session.abortController) {
-      session.abortController.abort();
+    // 更新数据库状态（只在确实是 running 状态时）
+    const debate = debateRepository.findById(debateId);
+    if (debate && debate.status === "running") {
+      debateRepository.updateStatus(debateId, "failed");
     }
-
-    session.status = "stopped";
-
-    // 更新数据库状态
-    debateRepository.updateStatus(debateId, "failed");
-
-    // 发送停止事件
-    sseService.broadcast(debateId, {
-      type: "debate_stopped",
-      data: { debate_id: debateId },
-    });
-
-    // 清理会话
-    this.activeDebates.delete(debateId);
-    sseService.clearDebate(debateId);
   }
 
   /**

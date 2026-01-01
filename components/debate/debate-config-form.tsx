@@ -213,19 +213,9 @@ export function DebateConfigForm() {
         throw new Error(result.error || "创建辩论失败");
       }
 
-      // 自动启动辩论
-      const startResponse = await fetch(`/api/debates/${result.id}/start`, {
-        method: "POST",
-      });
-
-      if (!startResponse.ok) {
-        const startError = await startResponse.json();
-        console.error("自动启动辩论失败:", startError);
-        // 即使启动失败也跳转到辩论页面，用户可以手动重试
-      }
-
-      // 跳转到辩论详情页（观看辩论）
-      router.push(`/debate/${result.id}`);
+      // 先跳转到辩论详情页，让前端建立 SSE 连接后再启动
+      // 使用查询参数指示页面在加载后自动启动辩论
+      router.push(`/debate/${result.id}?autoStart=true`);
     } catch (err) {
       if (!error) {  // 只在没有设置错误时设置
         setError(err instanceof Error ? err.message : String(err));

@@ -125,7 +125,23 @@ export function createJudgeScoringChain() {
     });
 
     const llm = createLLM({ ...llmConfig, temperature: 0.3 }); // 较低温度以获得稳定输出
+    console.log(`[JudgeChain] 开始调用 LLM: model=${llmConfig.model}, provider=${llmConfig.provider}, baseURL=${llmConfig.baseURL || 'default'}`);
+
+    // 临时禁用 console.error 以抑制 "Unknown model" 警告
+    const originalError = console.error;
+    console.error = (...args: unknown[]) => {
+      if (typeof args[0] === 'string' && args[0].includes('Failed to calculate number of tokens')) {
+        return; // 忽略 token 计算警告
+      }
+      originalError.apply(console, args);
+    };
+
     const response = await llm.invoke(prompt);
+
+    // 恢复 console.error
+    console.error = originalError;
+
+    console.log(`[JudgeChain] LLM 调用成功, 响应类型: ${typeof response}`);
 
     const content = typeof response === "string" ? response : response.content;
 

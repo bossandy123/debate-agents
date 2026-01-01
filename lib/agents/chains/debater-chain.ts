@@ -168,6 +168,8 @@ export function createStreamingDebaterChain() {
     // 创建流式 LLM
     const llm = createLLM({ ...llmConfig, streaming: true });
 
+    console.log(`[DebaterChain] 开始流式调用: model=${llmConfig.model}, provider=${llmConfig.provider}, baseURL=${llmConfig.baseURL || 'default'}`);
+
     let fullContent = "";
     const stream = await llm.stream([["human", prompt]]);
 

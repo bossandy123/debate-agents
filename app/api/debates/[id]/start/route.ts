@@ -48,8 +48,8 @@ export async function POST(
       );
     }
 
-    // 启动辩论（在后台执行）
-    debateService.startDebate(debateId);
+    // 启动辩论（等待状态更新完成）
+    await debateService.startDebate(debateId);
 
     // 返回更新后的辩论信息
     const updatedDebate = debateRepository.findById(debateId);

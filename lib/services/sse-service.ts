@@ -69,6 +69,7 @@ class SSEService {
    * @param event 事件（不含 timestamp）
    */
   broadcast(debateId: number, event: Omit<SSEEvent, "timestamp">): void {
+    console.log(`[SSEService] 广播事件: debateId=${debateId}, type=${event.type}, subscribers=${this.debates.get(debateId)?.size || 0}`);
     this.send(debateId, event);
   }
 

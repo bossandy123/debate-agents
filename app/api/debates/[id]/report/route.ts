@@ -10,6 +10,7 @@ import { votingService } from "@/lib/services/voting-service";
 import { roundRepository } from "@/lib/repositories/round.repository";
 import { messageRepository } from "@/lib/repositories/message.repository";
 import { scoreRepository } from "@/lib/repositories/score.repository";
+import { agentRepository } from "@/lib/repositories/agent.repository";
 
 export const runtime = "nodejs";
 
@@ -50,6 +51,9 @@ export async function GET(
 
     // 获取轮次详情
     const rounds = roundRepository.findByDebateId(debateId);
+    const agents = agentRepository.findByDebateId(debateId);
+    const agentMap = new Map(agents.map((a) => [a.id, a.stance]));
+
     const roundDetails = await Promise.all(
       rounds.map(async (round) => {
         const scores = scoreRepository.findByRoundId(round.id);
@@ -63,6 +67,7 @@ export async function GET(
           completed_at: round.completed_at,
           scores: scores.map((s) => ({
             agent_id: s.agent_id,
+            stance: agentMap.get(s.agent_id),
             logic: s.logic,
             rebuttal: s.rebuttal,
             clarity: s.clarity,
@@ -72,6 +77,7 @@ export async function GET(
           })),
           messages: messages.map((m) => ({
             agent_id: m.agent_id,
+            stance: agentMap.get(m.agent_id),
             content: m.content,
             created_at: m.created_at,
           })),

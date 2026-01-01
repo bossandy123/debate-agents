@@ -33,10 +33,10 @@ export async function POST(
       );
     }
 
-    // 检查辩论是否正在运行
-    if (!debateService.isRunning(debateId)) {
+    // 检查辩论状态（允许停止运行中或已失败的辩论）
+    if (debate.status !== "running" && debate.status !== "failed") {
       return NextResponse.json(
-        { error: "辩论未在运行中", code: "DEBATE_NOT_RUNNING" },
+        { error: "只能停止正在运行或已失败的辩论", code: "DEBATE_NOT_RUNNING" },
         { status: 400 }
       );
     }

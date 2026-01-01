@@ -20,6 +20,7 @@ interface Message {
   stance?: string;
   content: string;
   timestamp: string;
+  streaming?: boolean; // 是否正在流式传输
 }
 
 interface ScoreUpdate {
@@ -33,14 +34,20 @@ interface ScoreUpdate {
 interface DebateViewerProps {
   debateId: number;
   initialStatus: string;
+  maxRounds?: number;
 }
 
-export function DebateViewer({ debateId, initialStatus }: DebateViewerProps) {
+export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRounds = 10 }: DebateViewerProps) {
   const router = useRouter();
+  // 检测是否需要自动启动
+  const [autoStart, setAutoStart] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const [status, setStatus] = useState(initialStatus);
   const [currentRound, setCurrentRound] = useState(0);
-  const [maxRounds, setMaxRounds] = useState(10);
+  const [maxRounds, setMaxRounds] = useState(initialMaxRounds);
   const [messages, setMessages] = useState<Message[]>([]);
+  // 追踪当前流式传输的消息的临时 key (agent_id -> timestamp)
+  const streamingMessageKey = useRef<string | null>(null);
   const [scores, setScores] = useState<Map<number, ScoreUpdate>>(new Map());
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +62,8 @@ export function DebateViewer({ debateId, initialStatus }: DebateViewerProps) {
       eventSourceRef.current.close();
     }
 
+    console.log(`[DebateViewer] 正在连接 SSE: debateId=${debateId}`);
+
     const eventSource = new EventSource(
       `${window.location.origin}/api/debates/${debateId}/stream`
     );
@@ -63,12 +72,14 @@ export function DebateViewer({ debateId, initialStatus }: DebateViewerProps) {
       setIsConnected(true);
       setError(null);
       setReconnectAttempts(0);
-      console.log("SSE connected");
+      console.log("[DebateViewer] SSE 连接成功");
     };
 
     eventSource.onmessage = (event) => {
+      console.log(`[DebateViewer] 收到 SSE 原始数据:`, event.data);
       try {
         const data: SSEEvent = JSON.parse(event.data);
+        console.log(`[DebateViewer] 解析后的事件:`, data.type, data.data);
 
         switch (data.type) {
           case "debate_start":
@@ -78,14 +89,63 @@ export function DebateViewer({ debateId, initialStatus }: DebateViewerProps) {
           case "round_start":
             setCurrentRound((data.data as { sequence: number }).sequence);
             break;
+          case "agent_start": {
+            // Agent 开始发言,创建一个新的流式消息
+            const agentData = data.data as { agent_id: number; role: string; stance?: string };
+            const tempKey = `streaming-${agentData.agent_id}-${Date.now()}`;
+            streamingMessageKey.current = tempKey;
+            console.log(`[DebateViewer] agent_start: ${agentData.role}, stance=${agentData.stance}, key=${tempKey}`);
+            setMessages((prev) => {
+              const newMessages = [...prev, {
+                id: tempKey,
+                role: agentData.role,
+                stance: agentData.stance,
+                content: "",
+                timestamp: data.timestamp,
+                streaming: true,
+              }];
+              console.log(`[DebateViewer] 消息数量: ${prev.length} -> ${newMessages.length}`);
+              return newMessages;
+            });
+            break;
+          }
+          case "token": {
+            // 流式 token 更新
+            const tokenData = data.data as { token: string };
+            setMessages((prev) => {
+              const updated = [...prev];
+              // 找到最后一个正在流式传输的消息并追加 token
+              const lastMessage = updated[updated.length - 1];
+              if (lastMessage && lastMessage.streaming) {
+                lastMessage.content += tokenData.token;
+                console.log(`[DebateViewer] token 追加, 内容长度: ${lastMessage.content.length}`);
+              }
+              return updated;
+            });
+            break;
+          }
           case "agent_end": {
+            // Agent 发言结束,替换流式消息为最终消息
             const agentData = data.data as { agent_id: number; content: string };
-            setMessages((prev) => [...prev, {
-              id: `${agentData.agent_id}-${Date.now()}`,
-              role: "agent",
-              content: agentData.content,
-              timestamp: data.timestamp,
-            }]);
+            console.log(`[DebateViewer] agent_end: agent_id=${agentData.agent_id}, content长度=${agentData.content.length}`);
+            setMessages((prev) => {
+              const updated = [...prev];
+              const streamingIndex = updated.findIndex((m) => m.streaming);
+              if (streamingIndex >= 0) {
+                // 替换流式消息为最终消息
+                updated[streamingIndex] = {
+                  id: `agent-${agentData.agent_id}-${Date.now()}`,
+                  role: updated[streamingIndex].role,
+                  stance: updated[streamingIndex].stance,
+                  content: agentData.content,
+                  timestamp: data.timestamp,
+                  streaming: false,
+                };
+                console.log(`[DebateViewer] 替换流式消息, 索引=${streamingIndex}`);
+              }
+              streamingMessageKey.current = null;
+              return updated;
+            });
             break;
           }
           case "audience_speech": {
@@ -139,15 +199,42 @@ export function DebateViewer({ debateId, initialStatus }: DebateViewerProps) {
     };
 
     eventSourceRef.current = eventSource;
-  }, [debateId, reconnectAttempts]);
+  }, [debateId]); // 移除 reconnectAttempts 依赖,避免无限循环
 
-  // 组件挂载时连接 SSE
+  // 组件挂载时加载历史消息并连接 SSE
   useEffect(() => {
-    if (status === "running" || status === "pending") {
-      connectSSE();
+    // 检测 URL 中的 autoStart 参数
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const shouldAutoStart = urlParams.get('autoStart') === 'true';
+      setAutoStart(shouldAutoStart);
+      console.log(`[DebateViewer] 组件挂载, debateId=${debateId}, initialStatus=${initialStatus}, autoStart=${shouldAutoStart}`);
+    } else {
+      console.log(`[DebateViewer] 组件挂载, debateId=${debateId}, initialStatus=${initialStatus}`);
     }
 
+    // 加载数据库中的历史消息
+    const loadExistingMessages = async () => {
+      try {
+        console.log(`[DebateViewer] 加载历史消息...`);
+        const response = await fetch(`/api/debates/${debateId}/messages`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`[DebateViewer] 加载了 ${data.count} 条历史消息`);
+          setMessages(data.messages);
+        } else {
+          console.error(`[DebateViewer] 加载历史消息失败:`, response.status);
+        }
+      } catch (error) {
+        console.error(`[DebateViewer] 加载历史消息出错:`, error);
+      }
+    };
+
+    loadExistingMessages();
+    connectSSE();
+
     return () => {
+      console.log(`[DebateViewer] 组件卸载`);
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
       }
@@ -155,7 +242,55 @@ export function DebateViewer({ debateId, initialStatus }: DebateViewerProps) {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [status, connectSSE]);
+  }, []); // 只在挂载时执行一次
+
+  // 自动启动辩论（当 SSE 连接成功且 autoStart=true 时）
+  useEffect(() => {
+    const autoStartDebate = async () => {
+      if (!autoStart || hasStarted || !isConnected) {
+        return;
+      }
+
+      // 只在 pending 状态下启动
+      if (status !== 'pending') {
+        console.log(`[DebateViewer] 跳过自动启动, 状态不是 pending: ${status}`);
+        return;
+      }
+
+      try {
+        console.log(`[DebateViewer] 自动启动辩论: debateId=${debateId}`);
+        setHasStarted(true);
+
+        // 清理 URL 参数
+        const url = new URL(window.location.href);
+        url.searchParams.delete('autoStart');
+        window.history.replaceState({}, '', url.toString());
+
+        const response = await fetch(`/api/debates/${debateId}/start`, {
+          method: "POST",
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          console.error(`[DebateViewer] 自动启动失败:`, error);
+          setError(`自动启动失败: ${error.error || '未知错误'}`);
+        } else {
+          console.log(`[DebateViewer] 自动启动成功`);
+        }
+      } catch (err) {
+        console.error(`[DebateViewer] 自动启动出错:`, err);
+        setError(err instanceof Error ? err.message : '自动启动失败');
+        setHasStarted(false); // 允许重试
+      }
+    };
+
+    // 延迟启动，确保 SSE 连接已建立
+    const timer = setTimeout(() => {
+      autoStartDebate();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [autoStart, hasStarted, isConnected, status, debateId]);
 
   // 自动滚动到底部
   useEffect(() => {
@@ -241,21 +376,26 @@ export function DebateViewer({ debateId, initialStatus }: DebateViewerProps) {
                   msg.role === 'audience'
                     ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800'
                     : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700'
-                }`}
+                } ${msg.streaming ? 'animate-pulse' : ''}`}
               >
                 <div className="flex items-center gap-2 mb-2">
                   <span className={`px-2 py-1 rounded text-xs font-medium ${
                     msg.role === 'audience'
                       ? 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200'
-                      : 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
+                      : msg.stance === 'pro'
+                        ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
+                        : 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200'
                   }`}>
-                    {msg.role === 'audience' ? '观众' : '辩手'}
+                    {msg.role === 'audience' ? '观众' : msg.stance === 'pro' ? '正方' : '反方'}
+                    {msg.streaming && ' (生成中...)'}
                   </span>
                   <span className="text-xs text-slate-500">
                     {new Date(msg.timestamp).toLocaleTimeString()}
                   </span>
                 </div>
-                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                <p className="text-sm whitespace-pre-wrap">
+                  {msg.content || (msg.streaming ? '正在思考...' : '')}
+                </p>
               </div>
             ))
           )}
