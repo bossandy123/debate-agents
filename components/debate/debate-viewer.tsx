@@ -1,6 +1,7 @@
 /**
  * Debate Viewer Component
  * 实时辩论观看器组件 - 使用 SSE 接收辩论进度
+ * Feature: 001-voice-emotion (语音播放集成)
  */
 
 "use client";
@@ -11,6 +12,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
+import { useVoicePlayback } from "@/lib/voice/hooks/useVoicePlayback";
+import { VoiceControl } from "@/components/voice/VoiceControl";
 
 // 评分卡片组件
 function ScoreCard({ scoreData, roundId, onClose }: { scoreData: ScoreUpdate; roundId: number; onClose: () => void }) {
@@ -129,6 +132,7 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
   const [error, setError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [expandedScoreRoundId, setExpandedScoreRoundId] = useState<number | null>(null);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -138,6 +142,9 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
   const lastMessageCountRef = useRef(0);
   // 追踪是否应该自动滚动（默认不自动滚动，让用户手动控制）
   const shouldAutoScrollRef = useRef(false);
+
+  // Feature: 001-voice-emotion - 语音播放集成
+  const voicePlayback = useVoicePlayback({ debateId, autoPlay: false });
 
   // 连接 SSE
   const connectSSE = useCallback(() => {
@@ -474,7 +481,7 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
         </div>
 
         {/* 状态标签 */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
             status === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
             status === 'running' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
@@ -485,6 +492,33 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
              status === 'running' ? '进行中' :
              status === 'failed' ? '失败' : '等待中'}
           </span>
+
+          {/* Feature: 001-voice-emotion - 语音开关 */}
+          <button
+            onClick={() => setVoiceEnabled(!voiceEnabled)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              voiceEnabled
+                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 hover:bg-purple-200'
+                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200'
+            }`}
+            title={voiceEnabled ? '点击关闭语音' : '点击开启语音'}
+          >
+            {voiceEnabled ? (
+              <>
+                <svg className="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                语音开启
+              </>
+            ) : (
+              <>
+                <svg className="w-3 h-3 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 1.414L15 10l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293zM10 7.293a1 1 0 011.414 0L12 8l1.293-1.293a1 1 0 111.414 1.414L13 9l1.293 1.293a1 1 0 01-1.414 1.414L12 10.586l1.293 1.293a1 1 0 01-1.414 1.414L10.586 11 9.293 9.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                语音关闭
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -501,6 +535,37 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
           >
             重新连接
           </button>
+        </div>
+      )}
+
+      {/* Feature: 001-voice-emotion - 语音错误提示 */}
+      {voiceEnabled && voicePlayback.errors.size > 0 && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+          <div className="flex items-start gap-2">
+            <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">语音服务不可用</p>
+              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                部分语音生成失败，可能是网络问题或 API 配额限制。您可以：
+              </p>
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => setVoiceEnabled(false)}
+                  className="text-xs px-2 py-1 bg-yellow-200 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded hover:bg-yellow-300 dark:hover:bg-yellow-800 transition-colors"
+                >
+                  暂时关闭语音
+                </button>
+                <button
+                  onClick={() => voicePlayback.cleanup()}
+                  className="text-xs px-2 py-1 bg-yellow-200 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded hover:bg-yellow-300 dark:hover:bg-yellow-800 transition-colors"
+                >
+                  重试
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -628,6 +693,22 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
                               <span className="text-xs text-slate-500 dark:text-slate-400">
                                 {new Date(msg.timestamp).toLocaleTimeString()}
                               </span>
+
+                              {/* Feature: 001-voice-emotion - 语音控制按钮 */}
+                              {msg.content && !msg.streaming && voiceEnabled && (
+                                <div className="ml-auto">
+                                  <VoiceControl
+                                    messageId={parseInt(msg.id.replace(/\D/g, '')) || 0}
+                                    text={msg.content}
+                                    audioUrl={voicePlayback.audioUrls.get(parseInt(msg.id.replace(/\D/g, '')) || 0)}
+                                    loading={voicePlayback.loading.has(parseInt(msg.id.replace(/\D/g, '')) || 0)}
+                                    disabled={voicePlayback.playingMessageId !== null && voicePlayback.playingMessageId !== parseInt(msg.id.replace(/\D/g, ''))}
+                                    playing={voicePlayback.playingMessageId === parseInt(msg.id.replace(/\D/g, ''))}
+                                    onPlay={() => voicePlayback.playVoice(parseInt(msg.id.replace(/\D/g, '')) || 0, msg.content)}
+                                    onStop={() => voicePlayback.stopVoice()}
+                                  />
+                                </div>
+                              )}
                             </div>
                             <div className="prose prose-sm dark:prose-invert max-w-none">
                               {msg.content ? (
@@ -710,6 +791,22 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
                               <span className="text-xs text-slate-500 dark:text-slate-400">
                                 {new Date(msg.timestamp).toLocaleTimeString()}
                               </span>
+
+                              {/* Feature: 001-voice-emotion - 语音控制按钮 */}
+                              {msg.content && !msg.streaming && voiceEnabled && (
+                                <div className="ml-auto">
+                                  <VoiceControl
+                                    messageId={parseInt(msg.id.replace(/\D/g, '')) || 0}
+                                    text={msg.content}
+                                    audioUrl={voicePlayback.audioUrls.get(parseInt(msg.id.replace(/\D/g, '')) || 0)}
+                                    loading={voicePlayback.loading.has(parseInt(msg.id.replace(/\D/g, '')) || 0)}
+                                    disabled={voicePlayback.playingMessageId !== null && voicePlayback.playingMessageId !== parseInt(msg.id.replace(/\D/g, ''))}
+                                    playing={voicePlayback.playingMessageId === parseInt(msg.id.replace(/\D/g, ''))}
+                                    onPlay={() => voicePlayback.playVoice(parseInt(msg.id.replace(/\D/g, '')) || 0, msg.content)}
+                                    onStop={() => voicePlayback.stopVoice()}
+                                  />
+                                </div>
+                              )}
                             </div>
                             <div className="prose prose-sm dark:prose-invert max-w-none">
                               <p className="mb-0 text-slate-700 dark:text-slate-300">{msg.content}</p>

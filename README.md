@@ -15,6 +15,10 @@
 - **历史分页**: 辩论历史记录支持分页浏览（每页 20 条）
 - **复盘报告**: 自动生成包含评分分析、关键转折、决胜论点的复盘报告（支持 Markdown）
 - **数据导出**: 支持 JSON 格式导出完整辩论数据
+- **语音与情绪表达**: AI 辩手发言可转换为语音播放，支持情绪化语音表达
+  - 情绪化 TTS：根据发言内容自动分析情绪（激烈/中立/从容），调整语调、语速、音量
+  - 语音个性化：可自定义语音风格（男声/女声、年龄段）、播放设置（速度、音量、自动播放）
+  - 语音历史回顾：在复盘报告页面连续播放整场辩论，支持轮次跳转控制
 
 ## 技术栈
 
@@ -122,6 +126,62 @@ npm run dev
 - **状态筛选**: 支持按状态筛选（已完成/进行中/失败/等待中）
 - **快捷操作**: 快速跳转到观看、回放、导出
 
+### 语音功能使用
+
+#### 实时流式语音播放
+
+系统支持阿里云通义千问实时流式 TTS，实现低延迟语音播放：
+
+- **边生成边播放**: 使用 WebSocket Realtime API，音频数据实时流式传输
+- **低延迟**: 首字延迟可低至几百毫秒
+- **流式输入输出**: 支持流式文本输入与流式音频输出
+- **server_commit 模式**: 服务端智能处理文本分段和合成时机
+- **SSE 推送**: 通过 Server-Sent Events 实时推送音频数据块
+
+使用 `StreamingVoicePlayer` 组件实现实时播放：
+
+```tsx
+import { StreamingVoicePlayer } from '@/components/voice';
+
+<StreamingVoicePlayer
+  text="要转换的文本内容"
+  agentId={agentId}
+  autoPlay={true}
+  onPlayStart={() => console.log('开始播放')}
+  onPlayEnd={() => console.log('播放结束')}
+  onError={(error) => console.error('播放错误:', error)}
+/>
+```
+
+#### 语音设置
+
+在辩论页面或复盘报告页面，点击"语音设置"按钮打开设置面板：
+
+- **启用语音**: 开启后消息将自动转换为语音
+- **自动播放**: 语音生成完成后自动开始播放
+- **播放速度**: 调整语音播放速度（0.5x - 2.0x）
+- **默认音量**: 设置语音播放音量（0% - 100%）
+- **后台播放**: 切换页面时继续播放
+- **连续播放**: 自动播放下一条消息
+- **语音服务提供商**: 选择阿里云、豆包或腾讯
+
+#### 语音历史回顾
+
+在复盘报告页面，使用语音控制面板：
+
+- **播放整场**: 点击"播放整场"按钮连续播放所有发言
+- **播放控制**: 使用播放/暂停、停止、上一条、下一条按钮控制播放
+- **进度显示**: 查看当前播放进度和当前发言内容
+- **情绪显示**: 播放器显示当前发言的情绪类型（激烈/中立/从容）
+
+#### 情绪化语音
+
+系统会自动分析发言内容的情绪：
+
+- **激烈情绪**: 语调激昂、语速较快、音量较大
+- **中立情绪**: 语调平稳、语速适中
+- **从容情绪**: 语调平缓、语速较慢、音量适中
+
 ## API 端点
 
 | 端点 | 方法 | 描述 | 查询参数 |
@@ -139,6 +199,17 @@ npm run dev
 | `/api/debates/[id]/rounds/[sequence]` | GET | 获取单轮详情 | - |
 | `/api/models` | GET | 获取可用模型列表 | - |
 | `/db` | POST | 初始化数据库 | - |
+| `/api/voice/generate` | POST | 生成语音 | `messageId`, `text` |
+| `/api/voice/stream` | POST | 流式生成语音 (SSE) | `messageId`, `text` |
+| `/api/voice/cache/[messageId]` | GET | 获取语音缓存 | - |
+| `/api/voice/settings` | GET | 获取语音设置 | `userId` |
+| `/api/voice/settings` | PUT | 更新语音设置 | - |
+| `/api/voice/profiles/[agentId]` | GET | 获取 Agent 语音配置 | - |
+| `/api/voice/profiles/[agentId]` | PUT | 更新 Agent 语音配置 | - |
+| `/api/voice/playback/session` | POST | 创建播放会话 | - |
+| `/api/voice/playback/session` | GET | 获取播放会话 | `sessionId` 或 `debateId` + `userId` |
+| `/api/voice/playback/session/[sessionId]` | PUT | 更新播放会话 | `action` (play/pause/stop/next/previous) |
+| `/api/voice/playback/session/[sessionId]` | DELETE | 删除播放会话 | - |
 
 ### API 详细说明
 

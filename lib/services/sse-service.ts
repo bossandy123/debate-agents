@@ -18,6 +18,9 @@ export interface SSEEvent {
     | "audience_approval"
     | "round_end"
     | "debate_end"
+    | "voice_generating"
+    | "voice_ready"
+    | "voice_error"
     | "error";
   data: unknown;
   timestamp: string;

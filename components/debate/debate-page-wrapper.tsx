@@ -9,6 +9,7 @@ import { useState, useCallback } from "react";
 import { DebateViewer } from "./debate-viewer";
 import { StartDebateButton } from "./start-debate-button";
 import { StopDebateButton } from "./stop-debate-button";
+import { VoiceSettingsButton } from "@/components/voice";
 
 interface DebatePageWrapperProps {
   debateId: number;
@@ -59,6 +60,7 @@ export function DebatePageWrapper({
           </p>
         </div>
         <div className="flex gap-3">
+          <VoiceSettingsButton userId={`debate-${debateId}`} />
           {status === 'pending' && (
             <StartDebateButton
               debateId={debateId}

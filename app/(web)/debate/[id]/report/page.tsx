@@ -5,6 +5,7 @@
 
 import { Header } from "@/components/layout/header";
 import { MarkdownContent } from "@/components/debate/markdown-content";
+import { VoiceSettingsButton, ReportPlaybackControls } from "@/components/voice";
 import { notFound } from "next/navigation";
 
 interface ReportPageProps {
@@ -120,6 +121,7 @@ export default async function DebateReportPage({ params }: ReportPageProps) {
                   {debate.completed_at && ` · 完成时间: ${new Date(debate.completed_at).toLocaleString()}`}
                 </p>
               </div>
+              <VoiceSettingsButton userId={`report-${debateId}`} />
             </div>
 
             {/* 结果概览卡片 */}
@@ -163,6 +165,9 @@ export default async function DebateReportPage({ params }: ReportPageProps) {
                 <MarkdownContent content={judgment.summary || judgment.comment} />
               </div>
             )}
+
+            {/* 语音回顾播放控制 */}
+            <ReportPlaybackControls debateId={debateId} rounds={rounds} />
 
             {/* 各轮次详情 */}
             <div className="space-y-6">

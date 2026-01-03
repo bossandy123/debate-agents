@@ -134,6 +134,122 @@ export function initSchema(db: Database.Database): void {
 
   // 创建索引
   createIndexes(db);
+
+  // 创建语音功能相关表（Feature: 001-voice-emotion）
+  initVoiceSchema(db);
+}
+
+/**
+ * 初始化语音功能相关表
+ * Feature: 001-voice-emotion
+ */
+function initVoiceSchema(db: Database.Database): void {
+  // 1. 语音配置表（Agent 级别）
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS voice_profiles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      agent_id INTEGER NOT NULL,
+      agent_type TEXT NOT NULL,
+      voice_name TEXT NOT NULL DEFAULT 'default',
+      voice_gender TEXT,
+      voice_age TEXT,
+      base_pitch REAL DEFAULT 1.0,
+      base_speed REAL DEFAULT 1.0,
+      base_volume REAL DEFAULT 1.0,
+      tts_provider TEXT DEFAULT 'aliyun',
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_voice_profiles_agent_id ON voice_profiles(agent_id);`);
+
+  // 2. 语音缓存表（消息级别）
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS voice_cache (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message_id INTEGER NOT NULL UNIQUE,
+      content_hash TEXT NOT NULL,
+      emotion_type TEXT NOT NULL,
+      emotion_intensity REAL NOT NULL DEFAULT 0.5,
+      audio_url TEXT NOT NULL,
+      audio_format TEXT NOT NULL DEFAULT 'mp3',
+      file_size INTEGER NOT NULL,
+      duration REAL NOT NULL,
+      tts_provider TEXT NOT NULL,
+      generation_time REAL NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      expires_at INTEGER,
+      access_count INTEGER DEFAULT 0,
+      last_accessed_at INTEGER,
+      FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_voice_cache_message_id ON voice_cache(message_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_voice_cache_content_hash ON voice_cache(content_hash);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_voice_cache_expires_at ON voice_cache(expires_at);`);
+
+  // 3. 用户语音设置表（用户级别）
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS voice_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL UNIQUE,
+      auto_play INTEGER DEFAULT 1,
+      default_volume REAL DEFAULT 0.8,
+      playback_speed REAL DEFAULT 1.0,
+      voice_enabled INTEGER DEFAULT 1,
+      background_play INTEGER DEFAULT 0,
+      auto_advance INTEGER DEFAULT 1,
+      preferred_provider TEXT DEFAULT 'aliyun',
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_voice_settings_user_id ON voice_settings(user_id);`);
+
+  // 4. 情绪分析结果表（消息级别）
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS emotion_analyses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message_id INTEGER NOT NULL UNIQUE,
+      emotion_type TEXT NOT NULL,
+      emotion_intensity REAL NOT NULL DEFAULT 0.5,
+      pitch_shift REAL DEFAULT 1.0,
+      speed_multiplier REAL DEFAULT 1.0,
+      volume_boost REAL DEFAULT 1.0,
+      reasoning TEXT,
+      confidence REAL NOT NULL DEFAULT 0.5,
+      model_used TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_emotion_analyses_message_id ON emotion_analyses(message_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_emotion_analyses_emotion_type ON emotion_analyses(emotion_type);`);
+
+  // 5. 播放会话表（复盘报告连续播放）
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS playback_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL UNIQUE,
+      debate_id INTEGER NOT NULL,
+      user_id TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'idle',
+      current_message_id INTEGER,
+      playlist TEXT NOT NULL,
+      current_position INTEGER DEFAULT 0,
+      repeat_mode TEXT DEFAULT 'none',
+      shuffle INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+      FOREIGN KEY (debate_id) REFERENCES debates(id) ON DELETE CASCADE
+    );
+  `);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_playback_sessions_session_id ON playback_sessions(session_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_playback_sessions_debate_id ON playback_sessions(debate_id);`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_playback_sessions_user_id ON playback_sessions(user_id);`);
+
+  console.log('[VoiceSchema] Voice tables initialized successfully');
 }
 
 /**
