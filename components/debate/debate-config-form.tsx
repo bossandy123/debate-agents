@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 interface ValidationError {
   field: string;
@@ -257,98 +264,99 @@ export function DebateConfigForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {error && (
-        <div className="p-4 border border-destructive bg-destructive/10 text-destructive rounded-md">
-          {error}
+        <div className="glass-card p-4 border border-destructive/50 bg-destructive/10 text-destructive rounded-2xl animate-fade-in-down">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <p className="text-sm font-medium">{error}</p>
+          </div>
         </div>
       )}
 
-      {/* 辩题 */}
-      <div className="space-y-2">
-        <label htmlFor="topic" className="block text-sm font-medium">
-          辩题 <span className="text-destructive">*</span>
-        </label>
-        <input
-          type="text"
-          id="topic"
-          name="topic"
-          required
-          maxLength={500}
-          placeholder="例如：人工智能是否会取代人类工作"
-          className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${
-            fieldErrors.topic ? "border-destructive" : ""
-          }`}
-        />
-        {fieldErrors.topic && (
-          <p className="text-sm text-destructive">{fieldErrors.topic}</p>
-        )}
-      </div>
-
-      {/* 立场定义 */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label htmlFor="pro_definition" className="block text-sm font-medium">
-            正方立场定义
-          </label>
-          <textarea
-            id="pro_definition"
-            name="pro_definition"
-            rows={3}
-            placeholder="正方认为..."
-            className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${
-              fieldErrors.pro_definition ? "border-destructive" : ""
-            }`}
+      {/* Main Card - Topic & Stance */}
+      <div className="glass-card-elevated rounded-3xl p-8 space-y-8 hover-lift">
+        {/* 辩题 */}
+        <div className="space-y-3">
+          <Label htmlFor="topic" required>
+            辩题
+          </Label>
+          <Input
+            type="text"
+            id="topic"
+            name="topic"
+            required
+            maxLength={500}
+            placeholder="例如：人工智能是否会取代人类工作"
+            error={fieldErrors.topic}
+            className="text-lg"
           />
-          {fieldErrors.pro_definition && (
-            <p className="text-sm text-destructive">{fieldErrors.pro_definition}</p>
-          )}
+          <p className="text-sm text-muted-foreground">5-500 个字符</p>
         </div>
-        <div className="space-y-2">
-          <label htmlFor="con_definition" className="block text-sm font-medium">
-            反方立场定义
-          </label>
-          <textarea
-            id="con_definition"
-            name="con_definition"
-            rows={3}
-            placeholder="反方认为..."
-            className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${
-              fieldErrors.con_definition ? "border-destructive" : ""
-            }`}
-          />
-          {fieldErrors.con_definition && (
-            <p className="text-sm text-destructive">{fieldErrors.con_definition}</p>
-          )}
+
+        {/* 立场定义 */}
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="space-y-3">
+            <Label htmlFor="pro_definition">正方立场定义</Label>
+            <Textarea
+              id="pro_definition"
+              name="pro_definition"
+              rows={4}
+              placeholder="正方认为..."
+              error={fieldErrors.pro_definition}
+              className="resize-none"
+            />
+            <Badge variant="pro" className="mt-2">正方</Badge>
+          </div>
+          <div className="space-y-3">
+            <Label htmlFor="con_definition">反方立场定义</Label>
+            <Textarea
+              id="con_definition"
+              name="con_definition"
+              rows={4}
+              placeholder="反方认为..."
+              error={fieldErrors.con_definition}
+              className="resize-none"
+            />
+            <Badge variant="con" className="mt-2">反方</Badge>
+          </div>
         </div>
       </div>
 
-      {/* 辩论配置 */}
-      <div className="border-t pt-6 space-y-6">
-        <h2 className="text-xl font-semibold">辩论配置</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label htmlFor="max_rounds" className="block text-sm font-medium">
-              最大轮数 <span className="text-destructive">*</span>
-            </label>
-            <input
+      {/* Debate Configuration Card */}
+      <div className="glass-card rounded-3xl p-8 space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold">辩论配置</h2>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <Label htmlFor="max_rounds" required>
+              最大轮数
+            </Label>
+            <Input
               type="number"
               id="max_rounds"
               name="max_rounds"
               min={1}
               max={20}
               defaultValue={10}
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              error={fieldErrors.max_rounds}
             />
-            {fieldErrors.max_rounds && (
-              <p className="text-sm text-destructive">{fieldErrors.max_rounds}</p>
-            )}
           </div>
-          <div className="space-y-2">
-            <label htmlFor="judge_weight" className="block text-sm font-medium">
-              裁判权重 <span className="text-destructive">*</span>
-            </label>
-            <input
+          <div className="space-y-3">
+            <Label htmlFor="judge_weight" required>
+              裁判权重
+            </Label>
+            <Input
               type="number"
               id="judge_weight"
               name="judge_weight"
@@ -356,316 +364,327 @@ export function DebateConfigForm() {
               max={1}
               step={0.1}
               defaultValue={0.7}
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              error={fieldErrors.judge_weight}
             />
-            {fieldErrors.judge_weight && (
-              <p className="text-sm text-destructive">{fieldErrors.judge_weight}</p>
-            )}
-            <p className="text-xs text-muted-foreground">0-1之间，观众权重自动计算为 1 - 裁判权重</p>
+            <p className="text-sm text-muted-foreground">观众权重自动计算为 1 - 裁判权重</p>
           </div>
         </div>
       </div>
 
-      {/* Agent 配置 */}
-      <div className="border-t pt-6 space-y-6">
-        <h2 className="text-xl font-semibold">Agent 配置</h2>
+      {/* Agent Configuration Section */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-audience/10 flex items-center justify-center">
+            <svg className="w-5 h-5 text-audience" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold">Agent 配置</h2>
+        </div>
 
         {/* 正方辩手 */}
-        <div className="space-y-3 p-4 border rounded-lg">
-          <h3 className="font-medium">正方辩手</h3>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">协议类型</label>
-              <select
-                name="pro_provider"
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="openai">OpenAI 兼容协议</option>
-                <option value="anthropic">Anthropic 兼容协议</option>
-                <option value="google">Google 兼容协议</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">风格</label>
-              <select
-                name="pro_style"
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="rational">理性逻辑派</option>
-                <option value="aggressive">激进攻击派</option>
-                <option value="conservative">保守防御派</option>
-                <option value="technical">技术专业派</option>
-              </select>
+        <div className="glass-card rounded-3xl overflow-hidden">
+          <div className="bg-gradient-to-r from-pro/10 to-transparent px-8 py-4 border-b border-border/50">
+            <div className="flex items-center gap-3">
+              <Badge variant="pro" size="md" className="text-sm font-semibold">正方</Badge>
+              <h3 className="text-lg font-semibold">正方辩手配置</h3>
             </div>
           </div>
+          <div className="p-8 space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label>协议类型</Label>
+                <Select name="pro_provider">
+                  <option value="openai">OpenAI 兼容协议</option>
+                  <option value="anthropic">Anthropic 兼容协议</option>
+                  <option value="google">Google 兼容协议</option>
+                </Select>
+              </div>
+              <div className="space-y-3">
+                <Label>辩论风格</Label>
+                <Select name="pro_style">
+                  <option value="rational">理性逻辑派</option>
+                  <option value="aggressive">激进攻击派</option>
+                  <option value="conservative">保守防御派</option>
+                  <option value="technical">技术专业派</option>
+                </Select>
+              </div>
+            </div>
 
-          {/* 模型名称 */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">模型名称 *</label>
-            <input
-              type="text"
-              name="pro_model"
-              placeholder="例如: gpt-4, claude-3-opus, gemini-pro, qwen3-max"
-              required
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <p className="text-xs text-muted-foreground">填写端点支持的模型名称</p>
-          </div>
+            <div className="space-y-3">
+              <Label required>模型名称</Label>
+              <Input
+                type="text"
+                name="pro_model"
+                placeholder="例如: gpt-4, claude-3-opus, gemini-pro, qwen3-max"
+                required
+              />
+              <p className="text-sm text-muted-foreground">填写端点支持的模型名称</p>
+            </div>
 
-          {/* API 端点 */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">API 端点</label>
-            <input
-              type="url"
-              name="pro_base_url"
-              placeholder="可选：自定义端点（留空使用官方地址）"
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <p className="text-xs text-muted-foreground">例如使用代理时填写</p>
-          </div>
-
-          {/* API 密钥 */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">API 密钥</label>
-            <input
-              type="password"
-              name="pro_api_key"
-              placeholder="可选：留空使用环境变量中的默认密钥"
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <p className="text-xs text-muted-foreground">留空则使用环境变量中的默认密钥</p>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label>API 端点</Label>
+                <Input
+                  type="url"
+                  name="pro_base_url"
+                  placeholder="可选：自定义端点"
+                />
+                <p className="text-sm text-muted-foreground">留空使用官方地址</p>
+              </div>
+              <div className="space-y-3">
+                <Label>API 密钥</Label>
+                <Input
+                  type="password"
+                  name="pro_api_key"
+                  placeholder="可选：留空使用环境变量"
+                />
+                <p className="text-sm text-muted-foreground">留空则使用环境变量中的默认密钥</p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* 反方辩手 */}
-        <div className="space-y-3 p-4 border rounded-lg">
-          <h3 className="font-medium">反方辩手</h3>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">协议类型</label>
-              <select
-                name="con_provider"
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="openai">OpenAI 兼容协议</option>
-                <option value="anthropic">Anthropic 兼容协议</option>
-                <option value="google">Google 兼容协议</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">风格</label>
-              <select
-                name="con_style"
-                className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="rational">理性逻辑派</option>
-                <option value="aggressive">激进攻击派</option>
-                <option value="conservative">保守防御派</option>
-                <option value="technical">技术专业派</option>
-              </select>
+        <div className="glass-card rounded-3xl overflow-hidden">
+          <div className="bg-gradient-to-r from-con/10 to-transparent px-8 py-4 border-b border-border/50">
+            <div className="flex items-center gap-3">
+              <Badge variant="con" size="md" className="text-sm font-semibold">反方</Badge>
+              <h3 className="text-lg font-semibold">反方辩手配置</h3>
             </div>
           </div>
+          <div className="p-8 space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label>协议类型</Label>
+                <Select name="con_provider">
+                  <option value="openai">OpenAI 兼容协议</option>
+                  <option value="anthropic">Anthropic 兼容协议</option>
+                  <option value="google">Google 兼容协议</option>
+                </Select>
+              </div>
+              <div className="space-y-3">
+                <Label>辩论风格</Label>
+                <Select name="con_style">
+                  <option value="rational">理性逻辑派</option>
+                  <option value="aggressive">激进攻击派</option>
+                  <option value="conservative">保守防御派</option>
+                  <option value="technical">技术专业派</option>
+                </Select>
+              </div>
+            </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">模型名称 *</label>
-            <input
-              type="text"
-              name="con_model"
-              placeholder="例如: gpt-4, claude-3-opus, gemini-pro, qwen3-max"
-              required
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <p className="text-xs text-muted-foreground">填写端点支持的模型名称</p>
-          </div>
+            <div className="space-y-3">
+              <Label required>模型名称</Label>
+              <Input
+                type="text"
+                name="con_model"
+                placeholder="例如: gpt-4, claude-3-opus, gemini-pro, qwen3-max"
+                required
+              />
+              <p className="text-sm text-muted-foreground">填写端点支持的模型名称</p>
+            </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">API 端点</label>
-            <input
-              type="url"
-              name="con_base_url"
-              placeholder="可选：自定义端点（留空使用官方地址）"
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <p className="text-xs text-muted-foreground">例如使用代理时填写</p>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">API 密钥</label>
-            <input
-              type="password"
-              name="con_api_key"
-              placeholder="可选：留空使用环境变量中的默认密钥"
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <p className="text-xs text-muted-foreground">留空则使用环境变量中的默认密钥</p>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label>API 端点</Label>
+                <Input
+                  type="url"
+                  name="con_base_url"
+                  placeholder="可选：自定义端点"
+                />
+                <p className="text-sm text-muted-foreground">留空使用官方地址</p>
+              </div>
+              <div className="space-y-3">
+                <Label>API 密钥</Label>
+                <Input
+                  type="password"
+                  name="con_api_key"
+                  placeholder="可选：留空使用环境变量"
+                />
+                <p className="text-sm text-muted-foreground">留空则使用环境变量中的默认密钥</p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* 裁判 */}
-        <div className="space-y-3 p-4 border rounded-lg">
-          <h3 className="font-medium">裁判</h3>
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">协议类型</label>
-            <select
-              name="judge_provider"
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="openai">OpenAI 兼容协议</option>
-              <option value="anthropic">Anthropic 兼容协议</option>
-              <option value="google">Google 兼容协议</option>
-            </select>
+        <div className="glass-card rounded-3xl overflow-hidden">
+          <div className="bg-gradient-to-r from-primary/10 to-transparent px-8 py-4 border-b border-border/50">
+            <div className="flex items-center gap-3">
+              <Badge variant="default" size="md" className="text-sm font-semibold">裁判</Badge>
+              <h3 className="text-lg font-semibold">裁判配置</h3>
+            </div>
           </div>
+          <div className="p-8 space-y-6">
+            <div className="space-y-3">
+              <Label>协议类型</Label>
+              <Select name="judge_provider">
+                <option value="openai">OpenAI 兼容协议</option>
+                <option value="anthropic">Anthropic 兼容协议</option>
+                <option value="google">Google 兼容协议</option>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">模型名称 *</label>
-            <input
-              type="text"
-              name="judge_model"
-              placeholder="例如: gpt-4, claude-3-opus, gemini-pro"
-              required
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <p className="text-xs text-muted-foreground">填写端点支持的模型名称</p>
-          </div>
+            <div className="space-y-3">
+              <Label required>模型名称</Label>
+              <Input
+                type="text"
+                name="judge_model"
+                placeholder="例如: gpt-4, claude-3-opus, gemini-pro"
+                required
+              />
+              <p className="text-sm text-muted-foreground">填写端点支持的模型名称</p>
+            </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">API 端点</label>
-            <input
-              type="url"
-              name="judge_base_url"
-              placeholder="可选：自定义端点（留空使用官方地址）"
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <p className="text-xs text-muted-foreground">例如使用代理时填写</p>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">API 密钥</label>
-            <input
-              type="password"
-              name="judge_api_key"
-              placeholder="可选：留空使用环境变量中的默认密钥"
-              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <p className="text-xs text-muted-foreground">留空则使用环境变量中的默认密钥</p>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <Label>API 端点</Label>
+                <Input
+                  type="url"
+                  name="judge_base_url"
+                  placeholder="可选：自定义端点"
+                />
+                <p className="text-sm text-muted-foreground">留空使用官方地址</p>
+              </div>
+              <div className="space-y-3">
+                <Label>API 密钥</Label>
+                <Input
+                  type="password"
+                  name="judge_api_key"
+                  placeholder="可选：留空使用环境变量"
+                />
+                <p className="text-sm text-muted-foreground">留空则使用环境变量中的默认密钥</p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* 观众 */}
-        <div className="space-y-3 p-4 border rounded-lg">
-          <div className="flex items-center justify-between">
-            <h3 className="font-medium">观众 ({audiences.length})</h3>
-            <button
-              type="button"
-              onClick={addAudience}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              + 添加观众
-            </button>
+        <div className="glass-card rounded-3xl overflow-hidden">
+          <div className="bg-gradient-to-r from-audience/10 to-transparent px-8 py-4 border-b border-border/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Badge variant="audience" size="md" className="text-sm font-semibold">观众</Badge>
+                <h3 className="text-lg font-semibold">观众配置</h3>
+                <Badge variant="secondary">{audiences.length}</Badge>
+              </div>
+              <button
+                type="button"
+                onClick={addAudience}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all active:scale-95"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                添加观众
+              </button>
+            </div>
           </div>
 
-          {audiences.map((audience, index) => (
-            <div key={audience.id} className="p-4 border rounded-lg bg-slate-50 dark:bg-slate-900 space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium">观众 {index + 1}</h4>
-                {audiences.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeAudience(audience.id)}
-                    className="text-sm text-red-600 hover:text-red-700"
-                  >
-                    删除
-                  </button>
-                )}
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                {/* 观众类型 */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">类型</label>
-                  <select
-                    value={audience.audience_type}
-                    onChange={(e) => updateAudience(audience.id, "audience_type", e.target.value)}
-                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="rational">理性逻辑派</option>
-                    <option value="pragmatic">现实可行性派</option>
-                    <option value="technical">技术专业派</option>
-                    <option value="risk-averse">风险厌恶派</option>
-                    <option value="emotional">情感共鸣派</option>
-                  </select>
+          <div className="p-8 space-y-6">
+            {audiences.map((audience, index) => (
+              <div key={audience.id} className="glass-card rounded-2xl p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-audience/10 flex items-center justify-center">
+                      <span className="text-sm font-bold text-audience">{index + 1}</span>
+                    </div>
+                    <h4 className="font-semibold">观众 {index + 1}</h4>
+                  </div>
+                  {audiences.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeAudience(audience.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-destructive hover:bg-destructive/10 rounded-lg transition-all"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      删除
+                    </button>
+                  )}
                 </div>
 
-                {/* 协议类型 */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">协议类型</label>
-                  <select
-                    value={audience.model_provider}
-                    onChange={(e) => updateAudience(audience.id, "model_provider", e.target.value)}
-                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="openai">OpenAI 兼容协议</option>
-                    <option value="anthropic">Anthropic 兼容协议</option>
-                    <option value="google">Google 兼容协议</option>
-                  </select>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <Label>观众类型</Label>
+                    <select
+                      value={audience.audience_type}
+                      onChange={(e) => updateAudience(audience.id, "audience_type", e.target.value)}
+                      className="flex h-11 w-full appearance-none rounded-xl border border-input bg-card px-4 py-2 text-sm transition-all duration-300 ease-out-expo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      <option value="rational">理性逻辑派</option>
+                      <option value="pragmatic">现实可行性派</option>
+                      <option value="technical">技术专业派</option>
+                      <option value="risk-averse">风险厌恶派</option>
+                      <option value="emotional">情感共鸣派</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>协议类型</Label>
+                    <select
+                      value={audience.model_provider}
+                      onChange={(e) => updateAudience(audience.id, "model_provider", e.target.value)}
+                      className="flex h-11 w-full appearance-none rounded-xl border border-input bg-card px-4 py-2 text-sm transition-all duration-300 ease-out-expo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      <option value="openai">OpenAI 兼容协议</option>
+                      <option value="anthropic">Anthropic 兼容协议</option>
+                      <option value="google">Google 兼容协议</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label>模型名称</Label>
+                  <Input
+                    type="text"
+                    value={audience.model_name}
+                    onChange={(e) => updateAudience(audience.id, "model_name", e.target.value)}
+                    placeholder="例如: gpt-4, claude-3-opus, gemini-pro, qwen3-max"
+                  />
+                  <p className="text-sm text-muted-foreground">留空使用默认模型</p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <Label>API 端点</Label>
+                    <Input
+                      type="url"
+                      value={audience.base_url}
+                      onChange={(e) => updateAudience(audience.id, "base_url", e.target.value)}
+                      placeholder="可选：自定义端点"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label>API 密钥</Label>
+                    <Input
+                      type="password"
+                      value={audience.api_key}
+                      onChange={(e) => updateAudience(audience.id, "api_key", e.target.value)}
+                      placeholder="可选：留空使用环境变量"
+                    />
+                  </div>
                 </div>
               </div>
-
-              {/* 模型名称 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">模型名称</label>
-                <input
-                  type="text"
-                  value={audience.model_name}
-                  onChange={(e) => updateAudience(audience.id, "model_name", e.target.value)}
-                  placeholder="例如: gpt-4, claude-3-opus, gemini-pro, qwen3-max"
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <p className="text-xs text-muted-foreground">填写端点支持的模型名称（留空使用默认模型）</p>
-              </div>
-
-              {/* API 端点 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">API 端点</label>
-                <input
-                  type="url"
-                  value={audience.base_url}
-                  onChange={(e) => updateAudience(audience.id, "base_url", e.target.value)}
-                  placeholder="可选：自定义端点（留空使用官方地址）"
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <p className="text-xs text-muted-foreground">例如使用代理时填写</p>
-              </div>
-
-              {/* API 密钥 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">API 密钥</label>
-                <input
-                  type="password"
-                  value={audience.api_key}
-                  onChange={(e) => updateAudience(audience.id, "api_key", e.target.value)}
-                  placeholder="可选：留空使用环境变量中的默认密钥"
-                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <p className="text-xs text-muted-foreground">留空则使用环境变量中的默认密钥</p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* 提交按钮 */}
-      <div className="flex gap-4 pt-6">
-        <button
+      {/* Submit Buttons */}
+      <div className="flex flex-col sm:flex-row gap-4 pt-4">
+        <Button
           type="submit"
-          disabled={isSubmitting}
-          className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
+          isLoading={isSubmitting}
+          className="flex-1 h-12 text-base shadow-glow-sm"
         >
           {isSubmitting ? "创建中..." : "创建辩论"}
-        </button>
+        </Button>
         <Link
           href="/"
-          className="px-6 py-2 border rounded-md hover:bg-accent transition-colors"
+          className="inline-flex items-center justify-center px-6 py-3 h-12 rounded-xl font-medium border border-border hover:bg-muted transition-all duration-300 ease-out-expo active:scale-95"
         >
           取消
         </Link>

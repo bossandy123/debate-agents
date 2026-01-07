@@ -21,7 +21,9 @@
       "Bash(cat:*)",
       "Bash(python3:*)",
       "Bash(node:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Skill(ui-ux-pro-max)",
+      "Skill(ui-ux-pro-max:*)"
     ]
   }
 }
