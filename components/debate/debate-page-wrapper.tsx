@@ -11,7 +11,6 @@ import Link from "next/link";
 import { DebateViewer } from "./debate-viewer";
 import { StartDebateButton } from "./start-debate-button";
 import { StopDebateButton } from "./stop-debate-button";
-import { VoiceSettingsButton } from "@/components/voice";
 import { Badge } from "@/components/ui/badge";
 
 interface DebatePageWrapperProps {
@@ -96,7 +95,6 @@ export function DebatePageWrapper({
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <VoiceSettingsButton userId={`debate-${debateId}`} />
             {status === 'pending' && (
               <StartDebateButton
                 debateId={debateId}

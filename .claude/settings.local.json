@@ -24,7 +24,10 @@
       "Bash(npm uninstall:*)",
       "Skill(ui-ux-pro-max)",
       "Skill(ui-ux-pro-max:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(npm rebuild:*)",
+      "Bash(npm run dev:*)",
+      "Bash(NODE_ENV=production npm run build)"
     ]
   }
 }

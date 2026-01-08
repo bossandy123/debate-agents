@@ -13,7 +13,6 @@ import React, { useState } from 'react';
 export interface VoiceControlProps {
   messageId: number;
   text: string;
-  audioUrl?: string;
   emotionType?: string;
   disabled?: boolean;
   loading?: boolean;
@@ -24,8 +23,7 @@ export interface VoiceControlProps {
 
 export const VoiceControl: React.FC<VoiceControlProps> = ({
   messageId,
-  text,
-  audioUrl: _audioUrl,
+  text: _text,
   emotionType = 'neutral',
   disabled = false,
   loading = false,
@@ -86,7 +84,7 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
         }
       `}
       aria-label={isPlaying ? '停止播放' : '播放语音'}
-      title={text}
+      title={_text}
     >
       {loading ? (
         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
@@ -127,7 +125,7 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
       {/* 悬停提示 */}
       {isHovered && !disabled && !loading && !isPlaying && (
         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded whitespace-nowrap z-10">
-          {text.substring(0, 50)}{text.length > 50 ? '...' : ''}
+          {_text.substring(0, 50)}{_text.length > 50 ? '...' : ''}
         </div>
       )}
     </button>

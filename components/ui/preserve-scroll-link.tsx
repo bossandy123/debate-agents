@@ -17,7 +17,7 @@ interface PreserveScrollLinkProps {
 }
 
 export function PreserveScrollLink({ href, children, className, ...props }: PreserveScrollLinkProps) {
-  const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
+  const handleClick = (_e: MouseEvent<HTMLAnchorElement>) => {
     // 只在历史记录页面点击时保存滚动位置
     // 这样返回时可以恢复到原来的位置
     if (window.location.pathname === '/history') {

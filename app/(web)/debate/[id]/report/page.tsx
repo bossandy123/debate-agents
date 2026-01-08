@@ -5,7 +5,6 @@
 
 import { Header } from "@/components/layout/header";
 import { MarkdownContent } from "@/components/debate/markdown-content";
-import { VoiceSettingsButton } from "@/components/voice";
 import { Badge } from "@/components/ui/badge";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -155,7 +154,6 @@ export default async function DebateReportPage({ params }: ReportPageProps) {
                     {debate.completed_at && ` · 完成于 ${new Date(debate.completed_at).toLocaleDateString()}`}
                   </p>
                 </div>
-                <VoiceSettingsButton userId={`report-${debateId}`} />
               </div>
             </div>
 

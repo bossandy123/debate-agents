@@ -81,7 +81,7 @@ export default function GlassDemoPage() {
               </Card>
 
               {/* Glass Elevated Card */}
-              <Card variant="glass-elevated">
+              <Card variant="glass">
                 <CardHeader>
                   <CardTitle>高级玻璃卡片</CardTitle>
                   <CardDescription>增强玻璃效果</CardDescription>
@@ -101,7 +101,7 @@ export default function GlassDemoPage() {
           {/* Mixed Examples */}
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">混合使用示例</h2>
-            <Card variant="glass-elevated">
+            <Card variant="glass">
               <CardHeader>
                 <CardTitle>全玻璃效果组件</CardTitle>
                 <CardDescription>玻璃卡片 + 玻璃按钮</CardDescription>

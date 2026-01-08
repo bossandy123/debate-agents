@@ -2,31 +2,48 @@
  * 阿里云通义千问流式 TTS 实现
  * Feature: 001-voice-emotion
  *
- * 使用 HTTP API 进行流式语音合成
- * 将长文本分块处理，模拟流式效果
+ * 使用 WebSocket API 进行流式语音合成
+ * 参考官方 Python 示例实现
  */
 
-import { TTSBase, TTSErrorImpl } from './base';
-import { TTSOptions, TTSResult, TTSProvider } from '../types';
+import { TTSOptions, TTSProvider } from '../types';
+import WebSocket, { WebSocket as WebSocketInstance } from 'ws';
 
-interface AliyunRealtimeConfig {
-  apiKey: string;
-  endpoint: string;
-  model: string;
+type WSConnection = WebSocketInstance;
+
+interface WebSocketEvent {
+  type: string;
+  event_id?: string;
+  session?: { id?: string };
+  text?: string;
+  delta?: string;
+  error?: { message?: string };
+  item_id?: string;
+  response?: { id?: string };
+  item?: { id?: string };
 }
 
-// 流式合成结果回调
 export interface StreamingCallbacks {
   onAudioChunk?: (audioData: ArrayBuffer) => void;
   onDone?: () => void;
   onError?: (error: Error) => void;
 }
 
-export class AliyunRealtimeTTS extends TTSBase {
-  private config: AliyunRealtimeConfig;
+export class AliyunRealtimeTTS {
+  private config: {
+    apiKey: string;
+    endpoint: string;
+    model: string;
+  };
+
+  private currentCallbacks: StreamingCallbacks | null = null;
+  private sessionFinishedResolver: (() => void) | null = null;
+  private sessionUpdatedResolver: (() => void) | null = null;
+  private audioDoneResolver: (() => void) | null = null; // 等待 audio.done 事件
+  private activeResponseCount = 0; // 跟踪活跃的响应数量
+  private contentPartCount = 0; // 跟踪 content part 数量
 
   constructor() {
-    super();
     const apiKey = process.env.ALIYUN_API_KEY;
 
     if (!apiKey) {
@@ -35,9 +52,8 @@ export class AliyunRealtimeTTS extends TTSBase {
 
     this.config = {
       apiKey,
-      endpoint:
-        'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
-      model: 'qwen3-tts-flash',
+      endpoint: 'wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=qwen3-tts-flash-realtime',
+      model: 'qwen3-tts-flash-realtime',
     };
   }
 
@@ -46,231 +62,333 @@ export class AliyunRealtimeTTS extends TTSBase {
   }
 
   /**
-   * 流式合成语音（模拟流式）
-   * 将文本分段，每段生成后立即回调
+   * 流式合成语音
    */
   async synthesizeStreaming(
     options: TTSOptions,
     callbacks: StreamingCallbacks
   ): Promise<void> {
-    const { text, voiceProfile } = options;
+    const { text } = options;
 
-    // 预处理文本
     const processedText = this.preprocessText(text);
     if (!processedText) {
       callbacks.onError?.(new Error('Text is empty after preprocessing'));
       return;
     }
 
+    this.currentCallbacks = callbacks;
+    this.activeResponseCount = 0;
+    this.contentPartCount = 0;
+
     try {
-      // 将文本分段（按句子）
-      const chunks = this.splitTextIntoChunks(processedText, 300);
+      const ws = await this.connectWebSocket();
 
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-
-        // 生成该段的音频
-        const result = await this.synthesizeChunk(chunk, voiceProfile);
-
-        // 回调音频数据
-        if (result.audioBuffer) {
-          callbacks.onAudioChunk?.(result.audioBuffer);
+      // 等待 session.updated 确认
+      const updateTimeout = setTimeout(() => {
+        console.warn('[AliyunRealtimeTTS] No session.updated received, proceeding anyway');
+        if (this.sessionUpdatedResolver) {
+          this.sessionUpdatedResolver();
+          this.sessionUpdatedResolver = null;
         }
+      }, 5000); // 5秒超时
 
-        // 如果不是最后一段，添加一小段静音作为间隔
-        if (i < chunks.length - 1) {
-          const silence = this.generateSilence(24000, 0.3); // 300ms 静音
-          callbacks.onAudioChunk?.(silence);
-        }
+      console.log('[AliyunRealtimeTTS] Waiting for session.updated...');
+      await this.waitForSessionUpdated();
+      clearTimeout(updateTimeout);
+      console.log('[AliyunRealtimeTTS] session.updated confirmed, proceeding with text');
+
+      try {
+        // 在 server_commit 模式下，服务端会智能处理文本分段
+        // 我们一次性发送全部文本，但将文本长度控制在合理范围内
+        // 已在 preprocessText 中限制最大 1000 字符
+        console.log('[AliyunRealtimeTTS] Appending text:', processedText.substring(0, 100));
+        await this.appendText(ws, processedText);
+        console.log('[AliyunRealtimeTTS] Text appended, waiting for server to process...');
+
+        // 等待音频生成完成（使用 audio.done 事件）
+        await this.waitForAudioDone();
+        console.log('[AliyunRealtimeTTS] Audio generation completed');
+
+        // 等待一段时间，让所有音频数据都发送完毕
+        // 根据观察，response.done 可能在 audio.done 之后很久才到来
+        // 但音频数据会在 audio.done 后继续发送一段时间
+        console.log('[AliyunRealtimeTTS] Waiting for audio data to flush...');
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 等待 3 秒
+
+        // 结束会话
+        await this.finishSession(ws);
+        console.log('[AliyunRealtimeTTS] Session finish command sent, waiting for confirmation...');
+
+        // 等待会话结束确认（带超时）
+        const sessionTimeout = setTimeout(() => {
+          console.warn('[AliyunRealtimeTTS] Session timeout, forcing completion');
+          if (this.sessionFinishedResolver) {
+            this.sessionFinishedResolver();
+            this.sessionFinishedResolver = null;
+          }
+        }, 5000); // 5秒超时
+
+        await this.waitForSessionFinished();
+        clearTimeout(sessionTimeout);
+        console.log('[AliyunRealtimeTTS] Session finished confirmed');
+
+        // 等待一小段时间确保所有消息都已处理
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        callbacks.onDone?.();
+      } finally {
+        console.log('[AliyunRealtimeTTS] Closing WebSocket connection');
+        ws.close();
+        this.currentCallbacks = null;
       }
-
-      // 完成
-      callbacks.onDone?.();
     } catch (error) {
       console.error('[AliyunRealtimeTTS] Streaming synthesis failed:', error);
       callbacks.onError?.(
         error instanceof Error ? error : new Error('Unknown error')
       );
+      this.currentCallbacks = null;
     }
   }
 
   /**
-   * 非流式合成（保持兼容性）
+   * 生成事件ID
    */
-  protected async synthesizeInternal(options: TTSOptions): Promise<TTSResult> {
-    const { text, voiceProfile } = options;
-
-    // 预处理文本
-    const processedText = this.preprocessText(text);
-    if (!processedText) {
-      throw new Error('Text is empty after preprocessing');
-    }
-
-    return this.synthesizeChunk(processedText, voiceProfile);
+  private generateEventId(): string {
+    return `event_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 
   /**
-   * 合成单个文本块
+   * 发送事件
    */
-  private async synthesizeChunk(
-    text: string,
-    voiceProfile?: TTSOptions['voiceProfile']
-  ): Promise<TTSResult> {
-    // 映射音色名称
-    const voiceName = this.mapVoiceName(voiceProfile?.voiceName);
-
-    // 选择音频格式
-    const format = 'wav';
-
-    const requestBody = {
-      model: this.config.model,
-      input: {
-        text: text,
-        voice: voiceName,
-        language_type: 'Chinese',
-      },
-      parameters: {
-        text_type: 'PlainText',
-        audio_format: format,
-        sample_rate: 24000,
-        rate: 1.0,
-        pitch: 1.0,
-        volume: 1.0,
-      },
+  private async sendEvent(ws: WSConnection, event: Record<string, unknown>): Promise<void> {
+    const eventType = event.type as string;
+    const eventWithId = {
+      ...event,
+      event_id: this.generateEventId(),
     };
+    console.log(`[AliyunRealtimeTTS] Sending event: type=${eventType}, event_id=${eventWithId.event_id}`);
+    ws.send(JSON.stringify(eventWithId));
+  }
 
-    const response = await fetch(this.config.endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.config.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
+  /**
+   * 建立 WebSocket 连接
+   */
+  private async connectWebSocket(): Promise<WSConnection> {
+    return new Promise((resolve, reject) => {
+      const ws = new WebSocket(this.config.endpoint, {
+        headers: {
+          'Authorization': `Bearer ${this.config.apiKey}`,
+        },
+      });
+
+      ws.on('open', () => {
+        console.log('[AliyunRealtimeTTS] WebSocket connected');
+
+        // 设置默认会话配置
+        this.updateSession(ws, {
+          mode: 'server_commit',
+          voice: 'Maia',
+          language_type: 'Auto',
+          response_format: 'pcm',
+          sample_rate: 24000,
+        });
+
+        // 立即 resolve，不等待
+        // session.updated 事件会在消息处理器中异步处理
+        resolve(ws);
+      });
+
+      ws.on('error', (error) => {
+        console.error('[AliyunRealtimeTTS] WebSocket error:', error);
+        reject(error);
+      });
+
+      ws.on('message', (data) => {
+        // 忽略已经关闭连接后的消息
+        if (ws.readyState !== WebSocket.OPEN) {
+          console.warn('[AliyunRealtimeTTS] Received message but connection is not OPEN, state:', ws.readyState);
+          return;
+        }
+
+        try {
+          const event = JSON.parse(data.toString()) as WebSocketEvent;
+          this.handleMessage(event);
+        } catch (error) {
+          console.error('[AliyunRealtimeTTS] Failed to parse message:', error);
+        }
+      });
     });
+  }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
-    }
-
-    const data = await response.json();
-
-    // 检查 API 错误
-    if (data.code && data.code !== '') {
-      throw new TTSErrorImpl(
-        'aliyun',
-        data.code,
-        data.message || 'Unknown API error',
-        this.isRetryableError(data.code)
-      );
-    }
-
-    // 检查响应数据
-    if (!data.output?.audio) {
-      throw new Error('No audio data in response');
-    }
-
-    // 获取音频数据
-    let audioBuffer: ArrayBuffer;
-
-    if (data.output.audio.data) {
-      // Base64 编码的音频数据
-      const base64Data = data.output.audio.data;
-      audioBuffer = Buffer.from(base64Data, 'base64').buffer;
-    } else if (data.output.audio.url) {
-      // 音频 URL
-      const audioResponse = await fetch(data.output.audio.url);
-      audioBuffer = await audioResponse.arrayBuffer();
-    } else {
-      throw new Error('Invalid audio data in response');
-    }
-
-    // 计算时长
-    const duration = this.calculateAudioDuration(audioBuffer, format);
-
-    return {
-      audioBuffer,
-      format,
-      duration,
-      fileSize: audioBuffer.byteLength,
+  /**
+   * 更新会话配置
+   */
+  private async updateSession(ws: WSConnection, config: Record<string, unknown>): Promise<void> {
+    const event = {
+      type: 'session.update',
+      session: config,
     };
+    console.log('[AliyunRealtimeTTS] Updating session:', event);
+    await this.sendEvent(ws, event);
   }
 
   /**
-   * 将文本分段
+   * 添加文本
    */
-  private splitTextIntoChunks(text: string, maxLength: number): string[] {
-    const chunks: string[] = [];
-    let current = '';
+  private async appendText(ws: WSConnection, text: string): Promise<void> {
+    const event = {
+      type: 'input_text_buffer.append',
+      text: text,
+    };
+    await this.sendEvent(ws, event);
+  }
 
-    // 按句子分割
-    const sentences = text.split(/([。！？.!?，,、\n])/);
+  /**
+   * 结束会话
+   */
+  private async finishSession(ws: WSConnection): Promise<void> {
+    const event = {
+      type: 'session.finish',
+    };
+    await this.sendEvent(ws, event);
+  }
 
-    for (let i = 0; i < sentences.length; i++) {
-      const sentence = sentences[i];
-      const nextSentence = sentences[i + 1] || '';
+  /**
+   * 处理消息
+   */
+  private handleMessage(event: WebSocketEvent): void {
+    const eventType = event.type;
 
-      // 如果是标点符号，加到当前句子
-      const fullSentence = sentence + (nextSentence.match(/[。！？.!?，,、\n]/) ? nextSentence : '');
+    // 只记录关键事件，减少日志噪音
+    if (eventType !== 'response.audio.delta' &&
+        eventType !== 'response.audio.done' &&
+        eventType !== 'response.content_part.done' &&
+        eventType !== 'response.output_item.done') {
+      console.log(`[AliyunRealtimeTTS] Received event: ${eventType}`);
+    }
 
-      if ((current + fullSentence).length <= maxLength) {
-        current += fullSentence;
-        if (nextSentence.match(/[。！？.!?，,、\n]/)) {
-          i++; // 跳过已使用的标点
+    switch (eventType) {
+      case 'error':
+        console.error('[AliyunRealtimeTTS] Error:', event.error);
+        if (this.currentCallbacks?.onError) {
+          this.currentCallbacks.onError(new Error(event.error?.message || 'Unknown error'));
         }
-      } else {
-        if (current) {
-          chunks.push(current);
+        break;
+
+      case 'session.created':
+        console.log('[AliyunRealtimeTTS] Session created, ID:', event.session?.id);
+        break;
+
+      case 'session.updated':
+        console.log('[AliyunRealtimeTTS] Session updated, ID:', event.session?.id);
+        if (this.sessionUpdatedResolver) {
+          this.sessionUpdatedResolver();
+          this.sessionUpdatedResolver = null;
         }
-        current = fullSentence;
-        if (nextSentence.match(/[。！？.!?，,、\n]/)) {
-          i++; // 跳过已使用的标点
+        break;
+
+      case 'input_text_buffer.committed':
+        break;
+
+      case 'input_text_buffer.cleared':
+        break;
+
+      case 'response.created':
+        this.activeResponseCount++;
+        console.log('[AliyunRealtimeTTS] Response created, active count:', this.activeResponseCount);
+        break;
+
+      case 'response.output_item.added':
+        console.log('[AliyunRealtimeTTS] Output item added');
+        break;
+
+      case 'response.content_part.added':
+        this.contentPartCount++;
+        console.log('[AliyunRealtimeTTS] Content part added, total:', this.contentPartCount);
+        break;
+
+      case 'response.content_part.done':
+        console.log('[AliyunRealtimeTTS] Content part done');
+        break;
+
+      case 'response.output_item.done':
+        console.log('[AliyunRealtimeTTS] Output item done');
+        break;
+
+      case 'response.audio.delta':
+        if (event.delta) {
+          const audioBytes = Buffer.from(event.delta, 'base64');
+          console.log('[AliyunRealtimeTTS] Audio delta received:', audioBytes.length, 'bytes');
+          if (this.currentCallbacks?.onAudioChunk) {
+            this.currentCallbacks.onAudioChunk(audioBytes.buffer);
+          } else {
+            console.error('[AliyunRealtimeTTS] Audio delta received but no callback registered! This should not happen.');
+            // 触发错误，因为回调应该已经设置
+            if (this.currentCallbacks?.onError) {
+              this.currentCallbacks.onError(new Error('Audio data received before callback was set up'));
+            }
+          }
+        } else {
+          console.warn('[AliyunRealtimeTTS] Audio delta received but delta is empty');
         }
-      }
-    }
+        break;
 
-    if (current) {
-      chunks.push(current);
-    }
+      case 'response.audio.done':
+        console.log('[AliyunRealtimeTTS] Audio generation done');
+        // 打印统计信息
+        console.log('[AliyunRealtimeTTS] Total content parts:', this.contentPartCount);
+        console.log('[AliyunRealtimeTTS] Total active responses:', this.activeResponseCount);
+        // 触发音频完成事件
+        if (this.audioDoneResolver) {
+          this.audioDoneResolver();
+          this.audioDoneResolver = null;
+        }
+        break;
 
-    return chunks.length > 0 ? chunks : [text];
+      case 'response.done':
+        console.log('[AliyunRealtimeTTS] Response done');
+        // response.done 事件不再需要处理，因为我们已经在 audio.done 时继续了
+        break;
+
+      case 'session.finished':
+        console.log('[AliyunRealtimeTTS] Session finished');
+        if (this.sessionFinishedResolver) {
+          this.sessionFinishedResolver();
+          this.sessionFinishedResolver = null;
+        }
+        break;
+
+      default:
+        console.log('[AliyunRealtimeTTS] Unhandled event type:', eventType);
+        break;
+    }
   }
 
   /**
-   * 生成静音音频
+   * 等待音频生成完成
    */
-  private generateSilence(sampleRate: number, duration: number): ArrayBuffer {
-    const numSamples = Math.floor(sampleRate * duration);
-    const buffer = new ArrayBuffer(numSamples * 2); // 16-bit = 2 bytes per sample
-    const view = new Int16Array(buffer);
-
-    // 填充零（静音）
-    for (let i = 0; i < numSamples; i++) {
-      view[i] = 0;
-    }
-
-    return buffer;
+  private async waitForAudioDone(): Promise<void> {
+    return new Promise((resolve) => {
+      this.audioDoneResolver = resolve;
+    });
   }
 
   /**
-   * 计算音频时长（WAV 格式）
+   * 等待会话结束
    */
-  private calculateAudioDuration(buffer: ArrayBuffer, format: string): number {
-    if (format === 'wav' || format === 'pcm') {
-      // 假设 24kHz, 16-bit, mono
-      const bytesPerSecond = 24000 * 2;
-      return buffer.byteLength / bytesPerSecond;
-    }
-    // 其他格式，使用估算
-    return buffer.byteLength / (24000 * 2);
+  private async waitForSessionFinished(): Promise<void> {
+    return new Promise((resolve) => {
+      this.sessionFinishedResolver = resolve;
+    });
   }
 
   /**
-   * 判断错误是否可重试
+   * 等待会话更新确认
    */
-  private isRetryableError(code: string): boolean {
-    const retryableCodes = ['rate_limit_exceeded', 'service_unavailable', 'internal_error'];
-    return retryableCodes.includes(code);
+  private async waitForSessionUpdated(): Promise<void> {
+    return new Promise((resolve) => {
+      this.sessionUpdatedResolver = resolve;
+    });
   }
 
   /**
@@ -290,113 +408,18 @@ export class AliyunRealtimeTTS extends TTSBase {
     // 移除 URL
     processed = processed.replace(/https?:\/\/([^\s]+)\/[^\s]*/g, '$1 的链接');
 
-    // 限制文本长度
-    const maxLength = 2000;
-    if (processed.length > maxLength) {
-      console.warn(
-        `[AliyunRealtimeTTS] Text too long (${processed.length} chars), truncating to ${maxLength}`
-      );
-      processed =
-        processed.substring(0, maxLength - 10) + '...（内容过长，已截断）';
+    processed = processed.trim();
+
+    // 如果文本太长，截断以避免超时
+    // 阿里云 WebSocket 有 300 秒超时限制
+    // 假设平均语速为 150 字/分钟，保守估计 200 字/分钟
+    // 300 秒 = 5 分钟 ≈ 1000 字
+    const MAX_LENGTH = 1000;
+    if (processed.length > MAX_LENGTH) {
+      console.warn(`[AliyunRealtimeTTS] Text too long (${processed.length} chars), truncating to ${MAX_LENGTH}`);
+      processed = processed.substring(0, MAX_LENGTH) + '...（后续内容已截断）';
     }
 
-    return processed.trim();
-  }
-
-  /**
-   * 映射音色名称到 API 的音色
-   */
-  private mapVoiceName(oldVoiceName?: string): string {
-    if (!oldVoiceName) return 'Cherry';
-
-    // qwen3-tts-flash 支持的音色
-    const supportedVoices = [
-      'Cherry',
-      'Ethan',
-      'Nofish',
-      'Jennifer',
-      'Ryan',
-      'Katerina',
-      'Elias',
-      'Jada',
-      'Dylan',
-      'Sunny',
-      'Li',
-      'Marcus',
-      'Roy',
-      'Peter',
-      'Rocky',
-      'Kiki',
-      'Eric',
-      // 新增音色
-      'Serena',
-      'Chelsie',
-      'Momo',
-      'Vivian',
-      'Moon',
-      'Maia',
-      'Kai',
-      'Bella',
-      'Aiden',
-      'Eldric Sage',
-      'Mia',
-      'Mochi',
-      'Bellona',
-      'Vincent',
-      'Bunny',
-      'Neil',
-      'Seren',
-      'Pip',
-      'Stella',
-      'Bodega',
-      'Sonrisa',
-      'Alek',
-      'Dolce',
-      'Sohee',
-      'Ono Anna',
-      'Lenn',
-      'Emilien',
-      'Andre',
-      'Radio Gol',
-    ];
-
-    // 如果已经是支持的音色，直接返回
-    if (supportedVoices.includes(oldVoiceName)) {
-      return oldVoiceName;
-    }
-
-    // 旧 API 音色到新 API 音色的映射
-    const voiceMap: Record<string, string> = {
-      'zhichu-v1': 'Cherry',
-      'zhiyong-v1': 'Cherry',
-      'xiaoyun-v1': 'Cherry',
-      'xiaowen-v1': 'Cherry',
-      'longxiaochun': 'Cherry',
-      'longfei': 'Ethan',
-      'longjing': 'Cherry',
-      'longbei': 'Ethan',
-      'longmiao': 'Cherry',
-      'longxiaotian': 'Ethan',
-      'longyuan': 'Ethan',
-      'longmei': 'Cherry',
-      'longxuan': 'Ethan',
-      'Aijia': 'Cherry',
-      'Aixiao': 'Cherry',
-      'Aida': 'Cherry',
-      'Aiyue': 'Cherry',
-      'Aixia': 'Cherry',
-      'Aimei': 'Cherry',
-      'Aina': 'Cherry',
-      'Aiwei': 'Ethan',
-      'Cherry': 'Cherry',
-      'Ethan': 'Ethan',
-      'Serena': 'Serena',
-      'Sky': 'Ethan',
-      'Luna': 'Cherry',
-      'Andrew': 'Ethan',
-      'Rose': 'Cherry',
-    };
-
-    return voiceMap[oldVoiceName] || 'Cherry';
+    return processed;
   }
 }

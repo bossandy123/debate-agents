@@ -1,8 +1,10 @@
 /**
- * 语音生成 API
+ * 语音生成 API - 流式响应
  * Feature: 001-voice-emotion
  *
  * POST /api/voice/generate
+ *
+ * 使用 Server-Sent Events (SSE) 实时推送音频数据块
  *
  * 请求体：
  * {
@@ -13,132 +15,180 @@
  *   "provider"?: TTSProvider
  * }
  *
- * 响应：
- * {
- *   "success": boolean,
- *   "cached": boolean,
- *   "audioUrl": string,
- *   "duration": number,
- *   "format": string,
- *   "generationTime": number,
- *   "error"?: string
- * }
+ * SSE 事件类型：
+ * - event: start: 开始生成
+ * - event: audio: 音频数据块 (base64)
+ * - event: done: 生成完成
+ * - event: error: 错误信息
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db/client';
-import { getVoiceService, VoiceGenerationRequest } from '@/lib/services/voice.service';
-import { TTSProvider } from '@/lib/voice/types';
+import { NextRequest } from 'next/server';
+import { AliyunRealtimeTTS, StreamingCallbacks } from '@/lib/voice/tts';
+import { TTSOptions } from '@/lib/voice/types';
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-    // 验证请求参数
-    const { messageId, text, agentId, emotion, provider } = body;
-
-    if (typeof messageId !== 'number') {
-      return NextResponse.json(
-        { success: false, error: 'Invalid messageId: must be a number' },
-        { status: 400 }
-      );
-    }
-
-    if (typeof text !== 'string' || text.trim().length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid text: must be a non-empty string' },
-        { status: 400 }
-      );
-    }
-
-    if (text.length > 10000) {
-      return NextResponse.json(
-        { success: false, error: 'Text too long: maximum 10000 characters' },
-        { status: 400 }
-      );
-    }
-
-    // 构建生成请求
-    const generateRequest: VoiceGenerationRequest = {
-      messageId,
-      text: text.trim(),
-      agentId,
-      emotion,
-      provider: provider as TTSProvider,
-    };
-
-    // 获取语音服务并生成
-    const db = getDb();
-    const voiceService = getVoiceService(db);
-    const result = await voiceService.generateVoice(generateRequest);
-
-    if (result.success) {
-      return NextResponse.json(result);
-    } else {
-      return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 500 }
-      );
-    }
-
-  } catch (error) {
-    console.error('[API] /api/voice/generate error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Internal server error',
-      },
-      { status: 500 }
-    );
-  }
+interface GenerateRequest {
+  messageId: number;
+  text: string;
+  agentId?: number;
+  emotion?: unknown;
+  provider?: string;
 }
 
-// 支持 GET 请求查询生成状态
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const messageId = searchParams.get('messageId');
+export async function POST(request: NextRequest) {
+  // 创建 SSE 流
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const sendEvent = (event: string, data: unknown) => {
+        const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+        controller.enqueue(encoder.encode(message));
+      };
 
-  if (!messageId) {
-    return NextResponse.json(
-      { success: false, error: 'Missing messageId parameter' },
-      { status: 400 }
-    );
-  }
+      try {
+        // 解析请求
+        const body: GenerateRequest = await request.json();
 
-  try {
-    const db = getDb();
-    const voiceService = getVoiceService(db);
+        // 验证参数
+        if (typeof body.messageId !== 'number') {
+          sendEvent('error', { error: 'Invalid messageId: must be a number' });
+          controller.close();
+          return;
+        }
 
-    // 检查缓存中是否存在
-    const cached = await voiceService.getCachedVoice(
-      parseInt(messageId),
-      '', // text 不用于查询
-    );
+        if (typeof body.text !== 'string' || body.text.trim().length === 0) {
+          sendEvent('error', { error: 'Invalid text: must be a non-empty string' });
+          controller.close();
+          return;
+        }
 
-    if (cached) {
-      return NextResponse.json({
-        success: true,
-        cached: true,
-        exists: true,
-        audioUrl: cached.audioUrl,
-        duration: cached.duration,
-        format: cached.audioFormat,
-      });
-    }
+        const { messageId, text, emotion } = body;
 
-    return NextResponse.json({
-      success: true,
-      exists: false,
-    });
+        // 发送开始事件
+        sendEvent('start', { messageId, timestamp: Date.now() });
 
-  } catch (error) {
-    console.error('[API] /api/voice/generate GET error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Internal server error',
-      },
-      { status: 500 }
-    );
-  }
+        // 创建 TTS 选项
+        const ttsOptions: TTSOptions = {
+          text: text.trim(),
+          voiceProfile: undefined,
+          emotion: emotion as never,
+        };
+
+        // 音频块缓冲区 - 积累多个小块后一次性发送
+        const chunkBuffer: Uint8Array[] = [];
+        const BUFFER_SIZE_THRESHOLD = 10 * 1024; // 10KB 缓冲区阈值（降低延迟）
+        const BUFFER_TIME_THRESHOLD = 50; // 50ms 时间阈值（降低延迟）
+        let lastFlushTime = Date.now();
+        let totalBufferSize = 0;
+        let totalChunksReceived = 0;
+        let totalBytesReceived = 0;
+
+        const flushBuffer = () => {
+          if (chunkBuffer.length === 0) return;
+
+          // 合并所有缓冲的音频块
+          const totalLength = chunkBuffer.reduce((sum, chunk) => sum + chunk.length, 0);
+          const mergedBuffer = new Uint8Array(totalLength);
+          let offset = 0;
+          for (const chunk of chunkBuffer) {
+            mergedBuffer.set(chunk, offset);
+            offset += chunk.length;
+          }
+
+          // 转换为 base64 并发送
+          const base64 = Buffer.from(mergedBuffer.buffer).toString('base64');
+          console.log(`[API] Flushing ${chunkBuffer.length} chunks, total: ${totalLength} bytes`);
+          sendEvent('audio', {
+            chunk: base64,
+            size: totalLength,
+            timestamp: Date.now(),
+          });
+
+          // 清空缓冲区
+          chunkBuffer.length = 0;
+          totalBufferSize = 0;
+          lastFlushTime = Date.now();
+        };
+
+        // 创建回调
+        const callbacks: StreamingCallbacks = {
+          onAudioChunk: (audioData: ArrayBuffer) => {
+            // 将音频数据添加到缓冲区
+            const chunk = new Uint8Array(audioData);
+            chunkBuffer.push(chunk);
+            totalBufferSize += chunk.length;
+
+            // 统计
+            totalChunksReceived++;
+            totalBytesReceived += chunk.length;
+
+            const now = Date.now();
+            const shouldFlush =
+              totalBufferSize >= BUFFER_SIZE_THRESHOLD ||
+              (now - lastFlushTime) >= BUFFER_TIME_THRESHOLD;
+
+            if (shouldFlush) {
+              flushBuffer();
+            }
+          },
+          onDone: () => {
+            console.log('[API] Streaming done');
+            console.log(`[API] Total audio received: ${totalChunksReceived} chunks, ${totalBytesReceived} bytes`);
+            // 刷新剩余缓冲区
+            flushBuffer();
+            sendEvent('done', { messageId, timestamp: Date.now() });
+            controller.close();
+          },
+          onError: (error: Error) => {
+            console.error('[API] Streaming error:', error);
+            // 刷新剩余缓冲区
+            flushBuffer();
+            sendEvent('error', {
+              error: error.message,
+              messageId,
+              timestamp: Date.now(),
+            });
+            controller.close();
+          },
+        };
+
+        console.log(`[API] Starting streaming TTS for text length: ${text.length}`);
+
+        // 使用 AliyunRealtimeTTS 进行流式合成
+        const tts = new AliyunRealtimeTTS();
+        await tts.synthesizeStreaming(ttsOptions, callbacks);
+
+      } catch (error) {
+        console.error('[API] /api/voice/generate error:', error);
+        sendEvent('error', {
+          error: error instanceof Error ? error.message : 'Internal server error',
+          timestamp: Date.now(),
+        });
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no', // 禁用 Nginx 缓冲
+    },
+  });
+}
+
+// OPTIONS 请求支持（用于 CORS）
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
 }

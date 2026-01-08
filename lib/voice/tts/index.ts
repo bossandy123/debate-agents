@@ -3,9 +3,8 @@
  * Feature: 001-voice-emotion
  */
 
-export { TTSBase, TTSErrorImpl, TTSFactory } from './base';
-export type { ITTSService } from './base';
-export { AliyunTTS } from './aliyun';
+export { TTSProviderBase } from './base';
+export type { TTSProviderType } from './base';
 export { AliyunRealtimeTTS } from './aliyun-realtime';
 export type { StreamingCallbacks } from './aliyun-realtime';
 

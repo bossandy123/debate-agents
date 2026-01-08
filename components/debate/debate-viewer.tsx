@@ -141,8 +141,8 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
   // 追踪是否应该自动滚动（默认不自动滚动，让用户手动控制）
   const shouldAutoScrollRef = useRef(false);
 
-  // Feature: 001-voice-emotion - 语音播放集成
-  const voicePlayback = useVoicePlayback({ debateId, autoPlay: false });
+  // Feature: 001-voice-emotion - 语音播放集成（简化版）
+  const voicePlayback = useVoicePlayback();
 
   // 连接 SSE
   const connectSSE = useCallback(() => {
@@ -536,37 +536,6 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
         </div>
       )}
 
-      {/* Feature: 001-voice-emotion - 语音错误提示 - Apple style */}
-      {voiceEnabled && voicePlayback.errors.size > 0 && (
-        <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/5 p-4">
-          <div className="flex items-start gap-2">
-            <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">语音服务不可用</p>
-              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
-                部分语音生成失败，可能是网络问题或 API 配额限制。您可以：
-              </p>
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={() => setVoiceEnabled(false)}
-                  className="text-xs px-2 py-1 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 rounded hover:bg-yellow-500/20 transition-apple"
-                >
-                  暂时关闭语音
-                </button>
-                <button
-                  onClick={() => voicePlayback.cleanup()}
-                  className="text-xs px-2 py-1 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 rounded hover:bg-yellow-500/20 transition-apple"
-                >
-                  重试
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 辩论内容 - 画布展示 - Apple style */}
       <div className="space-y-6">
         {messages.length === 0 ? (
@@ -666,7 +635,6 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
                                     <VoiceControl
                                       messageId={parseInt(msg.id.replace(/\D/g, '')) || 0}
                                       text={msg.content}
-                                      audioUrl={voicePlayback.audioUrls.get(parseInt(msg.id.replace(/\D/g, '')) || 0)}
                                       loading={voicePlayback.loading.has(parseInt(msg.id.replace(/\D/g, '')) || 0)}
                                       disabled={voicePlayback.playingMessageId !== null && voicePlayback.playingMessageId !== parseInt(msg.id.replace(/\D/g, ''))}
                                       playing={voicePlayback.playingMessageId === parseInt(msg.id.replace(/\D/g, ''))}
@@ -757,7 +725,6 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
                                   <VoiceControl
                                     messageId={parseInt(msg.id.replace(/\D/g, '')) || 0}
                                     text={msg.content}
-                                    audioUrl={voicePlayback.audioUrls.get(parseInt(msg.id.replace(/\D/g, '')) || 0)}
                                     loading={voicePlayback.loading.has(parseInt(msg.id.replace(/\D/g, '')) || 0)}
                                     disabled={voicePlayback.playingMessageId !== null && voicePlayback.playingMessageId !== parseInt(msg.id.replace(/\D/g, ''))}
                                     playing={voicePlayback.playingMessageId === parseInt(msg.id.replace(/\D/g, ''))}

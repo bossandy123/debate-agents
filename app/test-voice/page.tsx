@@ -5,17 +5,21 @@
 'use client';
 
 import { useState } from 'react';
-import { StreamingVoicePlayer } from '@/components/voice';
+import { VoiceControl } from '@/components/voice';
+import { useVoicePlayback } from '@/lib/voice/hooks/useVoicePlayback';
 
 export default function TestVoicePage() {
   const [text, setText] = useState(
     '你好，这是一个测试。今天天气很好，我们来测试一下流式语音播放功能。'
   );
 
+  const voicePlayback = useVoicePlayback();
+  const messageId = 1;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">流式语音播放测试</h1>
+        <h1 className="text-3xl font-bold mb-8">语音播放测试</h1>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 space-y-6">
           <div>
@@ -31,25 +35,45 @@ export default function TestVoicePage() {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">流式播放器</h3>
-            <StreamingVoicePlayer
+            <h3 className="text-lg font-medium">语音控制</h3>
+            <VoiceControl
+              messageId={messageId}
               text={text}
-              autoPlay={false}
-              onPlayStart={() => console.log('开始播放')}
-              onPlayEnd={() => console.log('播放结束')}
-              onError={(error) => console.error('播放错误:', error)}
+              emotionType="neutral"
+              loading={voicePlayback.loading.has(messageId)}
+              playing={voicePlayback.playingMessageId === messageId}
+              disabled={voicePlayback.playingMessageId !== null && voicePlayback.playingMessageId !== messageId}
+              onPlay={() => voicePlayback.playVoice(messageId, text)}
+              onStop={() => voicePlayback.stopVoice()}
             />
           </div>
 
           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
             <h4 className="font-medium mb-2">使用说明</h4>
             <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-              <li>• 点击播放按钮开始流式播放</li>
-              <li>• 音频会边生成边播放，降低延迟</li>
-              <li>• 可以使用音量滑块调整音量</li>
-              <li>• 点击暂停按钮停止播放</li>
+              <li>• 点击播放按钮开始语音播放</li>
+              <li>• 使用阿里云TTS进行语音合成</li>
+              <li>• 实时流式传输音频数据</li>
+              <li>• 点击停止按钮可以中断播放</li>
             </ul>
           </div>
+
+          {/* 状态显示 */}
+          {voicePlayback.loading.has(messageId) && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
+              <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                正在生成语音...
+              </p>
+            </div>
+          )}
+
+          {voicePlayback.playingMessageId === messageId && (
+            <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+              <p className="text-sm text-green-700 dark:text-green-300">
+                正在播放...
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
