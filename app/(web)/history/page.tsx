@@ -1,35 +1,39 @@
 /**
- * History Page (Server Component)
- * 历史记录页面 - Spatial UI Design
+ * History Page
+ * Apple-style minimalist history page with scroll position restoration
  */
 
+"use client";
+
+import { useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { DebateHistoryList } from "@/components/debate/debate-history-list";
 
 export default function HistoryPage() {
+  useEffect(() => {
+    // 恢复滚动位置
+    const savedPosition = sessionStorage.getItem('history-scroll-position');
+    if (savedPosition) {
+      const position = parseInt(savedPosition, 10);
+      window.scrollTo({ top: position, behavior: 'instant' });
+    }
+  }, []);
+
   return (
     <>
       <Header />
-      <main className="container mx-auto px-4 py-8 md:py-12">
-        <div className="max-w-6xl mx-auto space-y-8">
-          {/* Header Section */}
-          <div className="space-y-4 animate-fade-in-down">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-audience/10 border border-audience/20">
-              <svg className="w-4 h-4 text-audience" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-sm font-medium text-audience">辩论档案</span>
+      <main className="min-h-[calc(100vh-3.5rem)]">
+        <div className="container mx-auto max-w-4xl px-4 py-12" id="main-content">
+          <div className="space-y-8">
+            {/* Header */}
+            <div>
+              <h1 className="text-display-sm font-bold mb-4">历史辩论记录</h1>
+              <p className="text-lg text-muted-foreground">
+                查看所有历史辩论，回顾精彩论点和最终结果
+              </p>
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-balance">
-              历史<span className="gradient-text">辩论记录</span>
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl">
-              查看所有历史辩论，回顾精彩论点和最终结果
-            </p>
-          </div>
 
-          {/* History List */}
-          <div className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+            {/* History List */}
             <DebateHistoryList />
           </div>
         </div>

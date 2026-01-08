@@ -1,6 +1,6 @@
 /**
  * Debate History List Component
- * 辩论历史列表组件 - Spatial UI Design
+ * Apple-style minimalist design
  */
 
 "use client";
@@ -9,6 +9,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PreserveScrollLink } from "@/components/ui/preserve-scroll-link";
 
 interface Debate {
   id: number;
@@ -63,6 +64,8 @@ export function DebateHistoryList() {
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
       fetchDebates(newPage);
+      // 保存滚动位置
+      sessionStorage.setItem('history-scroll-position', window.scrollY.toString());
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -78,14 +81,6 @@ export function DebateHistoryList() {
     return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
   };
 
-  const getWinnerLabel = (winner?: string) => {
-    if (!winner) return '-';
-    if (winner === 'draw') return '平局';
-    if (winner === 'pro') return '正方胜';
-    if (winner === 'con') return '反方胜';
-    return winner;
-  };
-
   const getWinnerBadge = (winner?: string) => {
     if (!winner) return null;
     if (winner === 'draw') return <Badge variant="default">平局</Badge>;
@@ -97,32 +92,27 @@ export function DebateHistoryList() {
   if (loading) {
     return (
       <div className="text-center py-16">
-        <div className="relative w-16 h-16 mx-auto">
+        <div className="relative w-12 h-12 mx-auto">
           <div className="absolute inset-0 rounded-full border-4 border-border/20"></div>
           <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
         </div>
-        <p className="mt-6 text-muted-foreground font-medium">加载历史记录中...</p>
+        <p className="mt-4 text-sm text-muted-foreground">加载历史记录中...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="glass-card p-6 border border-destructive/50 bg-destructive/10 rounded-3xl">
+      <div className="rounded-xl border border-border bg-card p-6">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
-            <svg className="w-6 h-6 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-destructive mb-1">加载失败</h3>
+            <h3 className="font-semibold mb-1">加载失败</h3>
             <p className="text-sm text-muted-foreground">{error}</p>
           </div>
           <Button
-            variant="outline"
+            variant="ghost"
+            size="sm"
             onClick={() => fetchDebates(pagination.page)}
-            className="shrink-0"
           >
             重试
           </Button>
@@ -133,24 +123,24 @@ export function DebateHistoryList() {
 
   if (debates.length === 0) {
     return (
-      <div className="glass-card-elevated rounded-3xl p-12 text-center">
-        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-muted/50 flex items-center justify-center">
-          <svg className="w-10 h-10 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="rounded-xl border border-border bg-card p-12 text-center">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-lg bg-muted/50 flex items-center justify-center">
+          <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
         </div>
-        <h3 className="text-xl font-semibold mb-2">暂无历史记录</h3>
-        <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+        <h3 className="text-lg font-semibold mb-2">暂无历史记录</h3>
+        <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
           创建你的第一个辩论，开始 AI 驱动的智能辩论体验
         </p>
-        <Link href="/create-debate">
-          <Button size="lg" className="shadow-glow-sm">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <PreserveScrollLink href="/create-debate">
+          <Button size="lg">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             创建第一个辩论
           </Button>
-        </Link>
+        </PreserveScrollLink>
       </div>
     );
   }
@@ -178,19 +168,18 @@ export function DebateHistoryList() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        {debates.map((debate, index) => (
+      <div className="space-y-3">
+        {debates.map((debate) => (
           <div
             key={debate.id}
-            className="glass-card rounded-2xl p-6 hover-lift cursor-pointer animate-fade-in-up"
-            style={{ animationDelay: `${index * 0.05}s` }}
+            className="rounded-xl border border-border bg-card p-4 transition-apple hover:bg-muted/20"
           >
-            <div className="flex items-start justify-between gap-6">
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-3 mb-3">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex-1 min-w-0 space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <Link
                     href={`/debate/${debate.id}`}
-                    className="text-xl font-semibold hover:text-primary transition-colors line-clamp-2"
+                    className="font-semibold hover:text-primary transition-colors line-clamp-2"
                   >
                     {debate.topic}
                   </Link>
@@ -198,59 +187,62 @@ export function DebateHistoryList() {
                   {getWinnerBadge(debate.winner)}
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground">辩论轮数</p>
-                    <p className="font-medium">{debate.max_rounds} 轮</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-muted-foreground">创建时间</p>
-                    <p className="font-medium">{new Date(debate.created_at).toLocaleDateString()}</p>
-                  </div>
+                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                  <span className="text-muted-foreground">
+                    辩论轮数: <span className="font-medium text-foreground">{debate.max_rounds} 轮</span>
+                  </span>
+                  <span className="text-muted-foreground">
+                    创建时间: <span className="font-medium text-foreground">{new Date(debate.created_at).toLocaleDateString()}</span>
+                  </span>
                   {debate.started_at && (
-                    <div className="space-y-1">
-                      <p className="text-muted-foreground">开始时间</p>
-                      <p className="font-medium">{new Date(debate.started_at).toLocaleDateString()}</p>
-                    </div>
+                    <span className="text-muted-foreground">
+                      开始时间: <span className="font-medium text-foreground">{new Date(debate.started_at).toLocaleDateString()}</span>
+                    </span>
                   )}
                   {debate.completed_at && (
-                    <div className="space-y-1">
-                      <p className="text-muted-foreground">完成时间</p>
-                      <p className="font-medium">{new Date(debate.completed_at).toLocaleDateString()}</p>
-                    </div>
+                    <span className="text-muted-foreground">
+                      完成时间: <span className="font-medium text-foreground">{new Date(debate.completed_at).toLocaleDateString()}</span>
+                    </span>
                   )}
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+              <div className="flex gap-2">
                 {debate.status === 'running' && (
-                  <Link href={`/debate/${debate.id}`} className="w-full sm:w-auto">
-                    <Button className="shadow-glow-sm">
+                  <PreserveScrollLink href={`/debate/${debate.id}`}>
+                    <Button size="sm">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       观看辩论
                     </Button>
-                  </Link>
+                  </PreserveScrollLink>
                 )}
                 {debate.status === 'completed' && (
                   <>
-                    <Link href={`/debate/${debate.id}`} className="w-full sm:w-auto">
-                      <Button variant="outline">
+                    <PreserveScrollLink href={`/debate/${debate.id}`}>
+                      <Button variant="secondary" size="sm">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         回放
                       </Button>
-                    </Link>
+                    </PreserveScrollLink>
+                    <PreserveScrollLink href={`/debate/${debate.id}/report`}>
+                      <Button variant="secondary" size="sm">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        报告
+                      </Button>
+                    </PreserveScrollLink>
                     <Link
                       href={`/api/debates/${debate.id}/export`}
                       target="_blank"
-                      className="w-full sm:w-auto"
                     >
-                      <Button variant="ghost">
+                      <Button variant="ghost" size="sm">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
@@ -267,11 +259,11 @@ export function DebateHistoryList() {
 
       {/* 分页控件 */}
       {pagination.totalPages > 1 && (
-        <div className="glass-card rounded-2xl p-6">
+        <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-sm text-muted-foreground">
-              共 <span className="font-semibold text-foreground">{pagination.total}</span> 条记录，
-              第 <span className="font-semibold text-foreground">{pagination.page}</span> / {pagination.totalPages} 页
+              共 <span className="font-medium text-foreground">{pagination.total}</span> 条记录，
+              第 <span className="font-medium text-foreground">{pagination.page}</span> / {pagination.totalPages} 页
             </div>
 
             <div className="flex items-center gap-2">
@@ -279,7 +271,7 @@ export function DebateHistoryList() {
               <button
                 onClick={() => handlePageChange(pagination.page - 1)}
                 disabled={pagination.page === 1}
-                className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-xl border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-apple"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -294,9 +286,9 @@ export function DebateHistoryList() {
                     key={index}
                     onClick={() => typeof pageNum === 'number' && handlePageChange(pageNum)}
                     disabled={pageNum === '...'}
-                    className={`min-w-[2.5rem] h-10 px-3 text-sm font-medium rounded-xl transition-all active:scale-95 ${
+                    className={`min-w-[2.25rem] h-9 px-3 text-sm font-medium rounded-lg transition-apple ${
                       pageNum === pagination.page
-                        ? 'bg-primary text-primary-foreground shadow-glow-sm'
+                        ? 'bg-primary text-primary-foreground'
                         : 'border border-border hover:bg-muted'
                     } ${pageNum === '...' ? 'cursor-default' : ''}`}
                   >
@@ -309,7 +301,7 @@ export function DebateHistoryList() {
               <button
                 onClick={() => handlePageChange(pagination.page + 1)}
                 disabled={pagination.page === pagination.totalPages}
-                className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-xl border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-apple"
               >
                 下一页
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

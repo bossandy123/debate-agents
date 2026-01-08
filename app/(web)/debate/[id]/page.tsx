@@ -1,6 +1,6 @@
 /**
  * Debate Viewer Page
- * 辩论观看页面 - 实时观看辩论进程
+ * Apple-style minimalist debate viewer
  */
 
 import { Header } from "@/components/layout/header";
@@ -34,8 +34,8 @@ export default async function DebateViewerPage({ params }: DebateViewerPageProps
     return (
       <>
         <Header />
-        <main className="container mx-auto px-4 py-8">
-          <div className="max-w-6xl mx-auto">
+        <main className="min-h-[calc(100vh-3.5rem)]">
+          <div className="container mx-auto max-w-5xl px-4 py-8" id="main-content">
             <DebatePageWrapper
               debateId={debateId}
               initialStatus={debate.status}

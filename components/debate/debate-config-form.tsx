@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -567,7 +566,7 @@ export function DebateConfigForm() {
               <div className="flex items-center gap-3">
                 <Badge variant="audience" size="md" className="text-sm font-semibold">观众</Badge>
                 <h3 className="text-lg font-semibold">观众配置</h3>
-                <Badge variant="secondary">{audiences.length}</Badge>
+                <Badge variant="default">{audiences.length}</Badge>
               </div>
               <button
                 type="button"

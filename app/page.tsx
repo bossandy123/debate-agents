@@ -1,24 +1,75 @@
 /**
  * Home Page
- * 首页 - Spatial UI Design
+ * 首页 - Spatial UI Design with Particle Animation
  */
+
+"use client";
 
 import Link from "next/link";
 import { Header } from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+
+function ParticleBackground() {
+  const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; size: number; duration: number; delay: number }>>([]);
+
+  useEffect(() => {
+    // Generate random particles
+    const newParticles = Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 4 + 2,
+      duration: Math.random() * 20 + 15,
+      delay: Math.random() * -20,
+    }));
+    setParticles(newParticles);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden">
+      {/* Animated gradient mesh */}
+      <div className="absolute inset-0 bg-gradient-mesh opacity-30 dark:opacity-20"></div>
+
+      {/* Floating orbs */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[128px] animate-float"></div>
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-audience/20 rounded-full blur-[128px] animate-float" style={{ animationDelay: "2s" }}></div>
+
+      {/* Particles */}
+      {particles.map((particle) => (
+        <div
+          key={particle.id}
+          className="absolute rounded-full bg-white/40 dark:bg-white/20 animate-particle-float"
+          style={{
+            left: `${particle.x}%`,
+            top: `${particle.y}%`,
+            width: `${particle.size}px`,
+            height: `${particle.size}px`,
+            animationDuration: `${particle.duration}s`,
+            animationDelay: `${particle.delay}s`,
+          }}
+        />
+      ))}
+
+      {/* Gradient overlays for depth */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/50"></div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   return (
     <>
+      <ParticleBackground />
       <Header />
-      <main className="container mx-auto px-4 py-8 md:py-12">
+      <main className="relative container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
           <div className="text-center space-y-8 py-16 md:py-24">
             {/* Animated Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 animate-fade-in-down">
               <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-              <span className="text-sm font-medium text-primary">AI 驱动的智能辩论系统</span>
+              <span className="text-sm font-medium text-primary">AI-Powered Intelligent Debates</span>
             </div>
 
             {/* Main Heading */}
@@ -46,7 +97,7 @@ export default function HomePage() {
                 </Button>
               </Link>
               <Link href="/history" className="w-full sm:w-auto">
-                <Button variant="outline" size="lg" className="text-lg px-8 py-6 h-14">
+                <Button variant="outline-action" size="lg" className="text-lg px-8 py-6 h-14">
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>

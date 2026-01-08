@@ -7,7 +7,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -15,71 +14,71 @@ import rehypeSanitize from "rehype-sanitize";
 import { useVoicePlayback } from "@/lib/voice/hooks/useVoicePlayback";
 import { VoiceControl } from "@/components/voice/VoiceControl";
 
-// 评分卡片组件
+// 评分卡片组件 - Apple style
 function ScoreCard({ scoreData, roundId, onClose }: { scoreData: ScoreUpdate; roundId: number; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl border p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-card rounded-xl border border-border shadow-apple-lg max-w-md w-full animate-scale-in" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-6 border-b border-border/50">
           <h3 className="text-lg font-semibold">第 {roundId} 轮评分</h3>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+            className="p-1.5 hover:bg-muted rounded-lg transition-apple"
             title="关闭"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
-            <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">正方</p>
-            <div className="space-y-1 text-xs">
+        <div className="p-6 grid grid-cols-2 gap-4">
+          <div className="rounded-lg border border-border/50 bg-pro/5 p-4">
+            <p className="text-sm font-semibold text-pro mb-3">正方</p>
+            <div className="space-y-2 text-xs">
               <div className="flex justify-between">
-                <span>逻辑性:</span>
-                <span>{scoreData.scores.pro.logic}</span>
+                <span className="text-muted-foreground">逻辑性</span>
+                <span className="font-medium">{scoreData.scores.pro.logic}</span>
               </div>
               <div className="flex justify-between">
-                <span>反驳能力:</span>
-                <span>{scoreData.scores.pro.rebuttal}</span>
+                <span className="text-muted-foreground">反驳能力</span>
+                <span className="font-medium">{scoreData.scores.pro.rebuttal}</span>
               </div>
               <div className="flex justify-between">
-                <span>清晰度:</span>
-                <span>{scoreData.scores.pro.clarity}</span>
+                <span className="text-muted-foreground">清晰度</span>
+                <span className="font-medium">{scoreData.scores.pro.clarity}</span>
               </div>
               <div className="flex justify-between">
-                <span>论据充分性:</span>
-                <span>{scoreData.scores.pro.evidence}</span>
+                <span className="text-muted-foreground">论据充分性</span>
+                <span className="font-medium">{scoreData.scores.pro.evidence}</span>
               </div>
-              <div className="flex justify-between font-bold border-t pt-1">
-                <span>总分:</span>
-                <span>{scoreData.scores.pro.total}</span>
+              <div className="flex justify-between pt-2 border-t border-border/50">
+                <span className="font-semibold">总分</span>
+                <span className="font-bold text-pro">{scoreData.scores.pro.total}</span>
               </div>
             </div>
           </div>
-          <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded">
-            <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">反方</p>
-            <div className="space-y-1 text-xs">
+          <div className="rounded-lg border border-border/50 bg-con/5 p-4">
+            <p className="text-sm font-semibold text-con mb-3">反方</p>
+            <div className="space-y-2 text-xs">
               <div className="flex justify-between">
-                <span>逻辑性:</span>
-                <span>{scoreData.scores.con.logic}</span>
+                <span className="text-muted-foreground">逻辑性</span>
+                <span className="font-medium">{scoreData.scores.con.logic}</span>
               </div>
               <div className="flex justify-between">
-                <span>反驳能力:</span>
-                <span>{scoreData.scores.con.rebuttal}</span>
+                <span className="text-muted-foreground">反驳能力</span>
+                <span className="font-medium">{scoreData.scores.con.rebuttal}</span>
               </div>
               <div className="flex justify-between">
-                <span>清晰度:</span>
-                <span>{scoreData.scores.con.clarity}</span>
+                <span className="text-muted-foreground">清晰度</span>
+                <span className="font-medium">{scoreData.scores.con.clarity}</span>
               </div>
               <div className="flex justify-between">
-                <span>论据充分性:</span>
-                <span>{scoreData.scores.con.evidence}</span>
+                <span className="text-muted-foreground">论据充分性</span>
+                <span className="font-medium">{scoreData.scores.con.evidence}</span>
               </div>
-              <div className="flex justify-between font-bold border-t pt-1">
-                <span>总分:</span>
-                <span>{scoreData.scores.con.total}</span>
+              <div className="flex justify-between pt-2 border-t border-border/50">
+                <span className="font-semibold">总分</span>
+                <span className="font-bold text-con">{scoreData.scores.con.total}</span>
               </div>
             </div>
           </div>
@@ -120,7 +119,6 @@ interface DebateViewerProps {
 }
 
 export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRounds = 10 }: DebateViewerProps) {
-  const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
   const [currentRound, setCurrentRound] = useState(0);
   const [maxRounds, setMaxRounds] = useState(initialMaxRounds);
@@ -450,13 +448,13 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
 
   return (
     <div className="space-y-6">
-      {/* 连接状态和进度 */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border p-4">
+      {/* 连接状态和进度 - Apple style */}
+      <div className="rounded-xl border border-border bg-card p-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">辩论进度</h2>
+          <h2 className="text-sm font-semibold">辩论进度</h2>
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-            <span className="text-sm text-slate-600 dark:text-slate-400">
+            <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className="text-xs text-muted-foreground">
               {isConnected ? '已连接' : '未连接'}
             </span>
           </div>
@@ -464,17 +462,17 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
 
         {/* 进度条 */}
         <div className="mb-4">
-          <div className="flex justify-between text-sm mb-2">
-            <span className="text-slate-600 dark:text-slate-400">
+          <div className="flex justify-between text-xs mb-2">
+            <span className="text-muted-foreground">
               第 {currentRound} / {maxRounds} 轮
             </span>
-            <span className="text-slate-600 dark:text-slate-400">
+            <span className="text-muted-foreground">
               {Math.round((currentRound / maxRounds) * 100)}%
             </span>
           </div>
-          <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+          <div className="w-full bg-muted rounded-full h-1.5">
             <div
-              className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500"
+              className="bg-primary h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${Math.min((currentRound / maxRounds) * 100, 100)}%` }}
             />
           </div>
@@ -482,11 +480,11 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
 
         {/* 状态标签 */}
         <div className="flex gap-2 flex-wrap">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-            status === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-            status === 'running' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
-            status === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-            'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+          <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
+            status === 'completed' ? 'bg-green-500/10 text-green-700 dark:text-green-400' :
+            status === 'running' ? 'bg-primary/10 text-primary' :
+            status === 'failed' ? 'bg-red-500/10 text-red-700 dark:text-red-400' :
+            'bg-muted text-muted-foreground'
           }`}>
             {status === 'completed' ? '已完成' :
              status === 'running' ? '进行中' :
@@ -496,10 +494,10 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
           {/* Feature: 001-voice-emotion - 语音开关 */}
           <button
             onClick={() => setVoiceEnabled(!voiceEnabled)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-apple ${
               voiceEnabled
-                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 hover:bg-purple-200'
-                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200'
+                ? 'bg-audience/10 text-audience hover:bg-audience/20'
+                : 'bg-muted text-muted-foreground hover:bg-muted/70'
             }`}
             title={voiceEnabled ? '点击关闭语音' : '点击开启语音'}
           >
@@ -522,44 +520,44 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
         </div>
       </div>
 
-      {/* 错误提示 */}
+      {/* 错误提示 - Apple style */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <div className="rounded-xl border border-destructive/50 bg-destructive/5 p-4">
+          <p className="text-sm text-destructive">{error}</p>
           <button
             onClick={() => {
               setError(null);
               connectSSE();
             }}
-            className="mt-2 text-sm text-red-600 dark:text-red-400 underline"
+            className="mt-2 text-sm text-destructive underline"
           >
             重新连接
           </button>
         </div>
       )}
 
-      {/* Feature: 001-voice-emotion - 语音错误提示 */}
+      {/* Feature: 001-voice-emotion - 语音错误提示 - Apple style */}
       {voiceEnabled && voicePlayback.errors.size > 0 && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+        <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/5 p-4">
           <div className="flex items-start gap-2">
             <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
             <div className="flex-1">
-              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">语音服务不可用</p>
+              <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">语音服务不可用</p>
               <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
                 部分语音生成失败，可能是网络问题或 API 配额限制。您可以：
               </p>
               <div className="mt-2 flex gap-2">
                 <button
                   onClick={() => setVoiceEnabled(false)}
-                  className="text-xs px-2 py-1 bg-yellow-200 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded hover:bg-yellow-300 dark:hover:bg-yellow-800 transition-colors"
+                  className="text-xs px-2 py-1 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 rounded hover:bg-yellow-500/20 transition-apple"
                 >
                   暂时关闭语音
                 </button>
                 <button
                   onClick={() => voicePlayback.cleanup()}
-                  className="text-xs px-2 py-1 bg-yellow-200 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded hover:bg-yellow-300 dark:hover:bg-yellow-800 transition-colors"
+                  className="text-xs px-2 py-1 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 rounded hover:bg-yellow-500/20 transition-apple"
                 >
                   重试
                 </button>
@@ -569,16 +567,16 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
         </div>
       )}
 
-      {/* 辩论内容 - 画布展示 */}
-      <div className="space-y-8">
+      {/* 辩论内容 - 画布展示 - Apple style */}
+      <div className="space-y-6">
         {messages.length === 0 ? (
-          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border p-12 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full mb-4">
-              <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="rounded-xl border border-border bg-card p-12 text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-muted/50 rounded-lg mb-4">
+              <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
-            <p className="text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-muted-foreground">
               {status === 'pending' ? '等待辩论开始...' : '等待发言...'}
             </p>
           </div>
@@ -622,173 +620,134 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
                     const hasStreaming = roundMessages.some(m => m.streaming);
 
                     return (
-                      <div key={roundId} className="relative">
-                    {/* 轮次标题 */}
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                          <span className="text-white font-bold">{roundId}</span>
-                        </div>
-                        <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                          第 {roundId} 轮
-                        </h3>
-                      </div>
-                      {hasStreaming && (
-                        <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium">
-                          <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          进行中
-                        </span>
-                      )}
-                    </div>
-
-                    {/* 画布卡片 */}
-                    <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden relative">
-                      {/* 画布内容 */}
-                      <div className="p-6 space-y-4">
-                        {roundMessages.map((msg) => (
-                          <div
-                            key={msg.id}
-                            className={`p-4 rounded-xl border-2 transition-all ${
-                              msg.role === 'audience'
-                                ? 'bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800'
-                                : msg.stance === 'pro'
-                                  ? 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-800'
-                                  : 'bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-red-200 dark:border-red-800'
-                            } ${msg.streaming ? 'animate-pulse' : ''}`}
-                          >
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold shadow-sm ${
-                                msg.role === 'audience'
-                                  ? 'bg-purple-500 text-white'
-                                  : msg.stance === 'pro'
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-red-500 text-white'
-                              }`}>
-                                {msg.role === 'audience' ? (
-                                  <>
-                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                                    </svg>
-                                    观众
-                                  </>
-                                ) : msg.stance === 'pro' ? (
-                                  <>
-                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                    正方
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                    </svg>
-                                    反方
-                                  </>
-                                )}
-                              </div>
-                              <span className="text-xs text-slate-500 dark:text-slate-400">
-                                {new Date(msg.timestamp).toLocaleTimeString()}
-                              </span>
-
-                              {/* Feature: 001-voice-emotion - 语音控制按钮 */}
-                              {msg.content && !msg.streaming && voiceEnabled && (
-                                <div className="ml-auto">
-                                  <VoiceControl
-                                    messageId={parseInt(msg.id.replace(/\D/g, '')) || 0}
-                                    text={msg.content}
-                                    audioUrl={voicePlayback.audioUrls.get(parseInt(msg.id.replace(/\D/g, '')) || 0)}
-                                    loading={voicePlayback.loading.has(parseInt(msg.id.replace(/\D/g, '')) || 0)}
-                                    disabled={voicePlayback.playingMessageId !== null && voicePlayback.playingMessageId !== parseInt(msg.id.replace(/\D/g, ''))}
-                                    playing={voicePlayback.playingMessageId === parseInt(msg.id.replace(/\D/g, ''))}
-                                    onPlay={() => voicePlayback.playVoice(parseInt(msg.id.replace(/\D/g, '')) || 0, msg.content)}
-                                    onStop={() => voicePlayback.stopVoice()}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                            <div className="prose prose-sm dark:prose-invert max-w-none">
-                              {msg.content ? (
-                                <ReactMarkdown
-                                  remarkPlugins={[remarkGfm]}
-                                  rehypePlugins={[rehypeRaw, rehypeSanitize]}
-                                  components={{
-                                    p: ({ children }) => <p className="mb-0 text-slate-700 dark:text-slate-300">{children}</p>,
-                                    ul: ({ children }) => <ul className="list-disc list-inside space-y-1">{children}</ul>,
-                                    ol: ({ children }) => <ol className="list-decimal list-inside space-y-1">{children}</ol>,
-                                    li: ({ children }) => <li className="text-slate-700 dark:text-slate-300">{children}</li>,
-                                    strong: ({ children }) => <strong className="font-bold text-slate-900 dark:text-slate-100">{children}</strong>,
-                                    em: ({ children }) => <em className="italic text-slate-700 dark:text-slate-300">{children}</em>,
-                                    code: ({ className, children }) => {
-                                      const isInline = !className?.includes('language-');
-                                      return isInline ? (
-                                        <code className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-xs font-mono text-purple-700 dark:text-purple-300">{children}</code>
-                                      ) : (
-                                        <code className="block p-3 bg-slate-900 dark:bg-slate-950 rounded-lg text-xs font-mono text-green-400 overflow-x-auto">{children}</code>
-                                      );
-                                    },
-                                    blockquote: ({ children }) => <blockquote className="border-l-4 border-slate-300 dark:border-slate-600 pl-4 italic text-slate-600 dark:text-slate-400">{children}</blockquote>,
-                                  }}
-                                >
-                                  {msg.content}
-                                </ReactMarkdown>
-                              ) : (
-                                <p className="text-slate-400 dark:text-slate-500 italic">
-                                  {msg.streaming ? '正在思考...' : ''}
-                                </p>
+                      <div key={roundId} className="rounded-xl border border-border bg-card overflow-hidden">
+                        {/* 轮次标题 - Apple style */}
+                        <div className="border-b border-border px-6 py-4 bg-muted/30">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium">第 {roundId} 轮</span>
+                              {hasStreaming && (
+                                <span className="flex items-center gap-1 text-xs text-primary font-medium">
+                                  <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  进行中
+                                </span>
                               )}
                             </div>
                           </div>
-                        ))}
+                        </div>
+
+                        {/* 消息内容 - Apple style */}
+                        <div className="p-6 space-y-4">
+                          {roundMessages.map((msg) => (
+                            <div
+                              key={msg.id}
+                              className={`rounded-lg border border-border/50 bg-muted/20 p-4 ${msg.streaming ? 'animate-pulse' : ''}`}
+                            >
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className={`text-xs font-semibold rounded px-2 py-0.5 ${
+                                  msg.role === 'audience'
+                                    ? 'bg-audience/10 text-audience'
+                                    : msg.stance === 'pro'
+                                      ? 'bg-pro/10 text-pro'
+                                      : 'bg-con/10 text-con'
+                                }`}>
+                                  {msg.role === 'audience' ? '观众' : msg.stance === 'pro' ? '正方' : '反方'}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(msg.timestamp).toLocaleTimeString()}
+                                </span>
+
+                                {/* Feature: 001-voice-emotion - 语音控制按钮 */}
+                                {msg.content && !msg.streaming && voiceEnabled && (
+                                  <div className="ml-auto">
+                                    <VoiceControl
+                                      messageId={parseInt(msg.id.replace(/\D/g, '')) || 0}
+                                      text={msg.content}
+                                      audioUrl={voicePlayback.audioUrls.get(parseInt(msg.id.replace(/\D/g, '')) || 0)}
+                                      loading={voicePlayback.loading.has(parseInt(msg.id.replace(/\D/g, '')) || 0)}
+                                      disabled={voicePlayback.playingMessageId !== null && voicePlayback.playingMessageId !== parseInt(msg.id.replace(/\D/g, ''))}
+                                      playing={voicePlayback.playingMessageId === parseInt(msg.id.replace(/\D/g, ''))}
+                                      onPlay={() => voicePlayback.playVoice(parseInt(msg.id.replace(/\D/g, '')) || 0, msg.content)}
+                                      onStop={() => voicePlayback.stopVoice()}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="prose prose-sm dark:prose-invert max-w-none">
+                                {msg.content ? (
+                                  <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    rehypePlugins={[rehypeRaw, rehypeSanitize]}
+                                    components={{
+                                      p: ({ children }) => <p className="mb-0 text-foreground">{children}</p>,
+                                      ul: ({ children }) => <ul className="list-disc list-inside space-y-1">{children}</ul>,
+                                      ol: ({ children }) => <ol className="list-decimal list-inside space-y-1">{children}</ol>,
+                                      li: ({ children }) => <li className="text-foreground">{children}</li>,
+                                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                      em: ({ children }) => <em className="italic">{children}</em>,
+                                      code: ({ className, children }) => {
+                                        const isInline = !className?.includes('language-');
+                                        return isInline ? (
+                                          <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono text-primary">{children}</code>
+                                        ) : (
+                                          <code className="block p-3 bg-muted rounded-lg text-xs font-mono text-foreground overflow-x-auto">{children}</code>
+                                        );
+                                      },
+                                      blockquote: ({ children }) => <blockquote className="border-l-4 border-border/50 pl-4 italic text-muted-foreground">{children}</blockquote>,
+                                    }}
+                                  >
+                                    {msg.content}
+                                  </ReactMarkdown>
+                                ) : (
+                                  <p className="text-muted-foreground italic">
+                                    {msg.streaming ? '正在思考...' : ''}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* 评分按钮 - Apple style */}
+                        {scoreData && (
+                          <button
+                            onClick={() => setExpandedScoreRoundId(roundId)}
+                            className="absolute top-4 right-4 w-10 h-10 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-apple flex items-center justify-center"
+                            title={`查看第 ${roundId} 轮评分`}
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
+                    );
+                  })}
 
-                      {/* 悬浮评分按钮 */}
-                      {scoreData && (
-                        <button
-                          onClick={() => setExpandedScoreRoundId(roundId)}
-                          className="absolute top-4 right-4 w-12 h-12 bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 text-white rounded-full shadow-xl hover:shadow-2xl hover:scale-110 transition-all flex items-center justify-center group z-10"
-                          title={`查看第 ${roundId} 轮评分`}
-                        >
-                          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-
-                  {/* 显示没有 roundId 的消息（如果有） */}
+                  {/* 显示没有 roundId 的消息（如果有） - Apple style */}
                   {messagesWithoutRound.length > 0 && (
-                    <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-6 border-2 border-yellow-200 dark:border-yellow-800">
-                      <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-4">其他消息</h3>
-                      <div className="space-y-4">
+                    <div className="rounded-xl border border-warning/50 bg-warning/5 p-6">
+                      <h3 className="text-sm font-semibold text-warning mb-4">其他消息</h3>
+                      <div className="space-y-3">
                         {messagesWithoutRound.map((msg) => (
                           <div
                             key={msg.id}
-                            className={`p-4 rounded-xl border-2 transition-all ${
-                              msg.role === 'audience'
-                                ? 'bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800'
-                                : msg.stance === 'pro'
-                                  ? 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-200 dark:border-blue-800'
-                                  : 'bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-red-200 dark:border-red-800'
-                            } ${msg.streaming ? 'animate-pulse' : ''}`}
+                            className={`rounded-lg border border-border/50 bg-muted/20 p-4 ${msg.streaming ? 'animate-pulse' : ''}`}
                           >
                             <div className="flex items-center gap-2 mb-2">
-                              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold shadow-sm ${
+                              <span className={`text-xs font-semibold rounded px-2 py-0.5 ${
                                 msg.role === 'audience'
-                                  ? 'bg-purple-500 text-white'
+                                  ? 'bg-audience/10 text-audience'
                                   : msg.stance === 'pro'
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-red-500 text-white'
+                                    ? 'bg-pro/10 text-pro'
+                                    : 'bg-con/10 text-con'
                               }`}>
                                 {msg.role === 'audience' ? '观众' : msg.stance === 'pro' ? '正方' : '反方'}
-                              </div>
-                              <span className="text-xs text-slate-500 dark:text-slate-400">
+                              </span>
+                              <span className="text-xs text-muted-foreground">
                                 {new Date(msg.timestamp).toLocaleTimeString()}
                               </span>
 
@@ -809,7 +768,7 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
                               )}
                             </div>
                             <div className="prose prose-sm dark:prose-invert max-w-none">
-                              <p className="mb-0 text-slate-700 dark:text-slate-300">{msg.content}</p>
+                              <p className="mb-0 text-foreground">{msg.content}</p>
                             </div>
                           </div>
                         ))}
@@ -831,24 +790,6 @@ export function DebateViewer({ debateId, initialStatus, maxRounds: initialMaxRou
           roundId={expandedScoreRoundId}
           onClose={() => setExpandedScoreRoundId(null)}
         />
-      )}
-
-      {/* 完成后的操作按钮 */}
-      {status === 'completed' && (
-        <div className="flex gap-4">
-          <button
-            onClick={() => router.push(`/debate/${debateId}/report`)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            查看复盘报告
-          </button>
-          <button
-            onClick={() => router.push('/history')}
-            className="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-          >
-            返回历史记录
-          </button>
-        </div>
       )}
     </div>
   );

@@ -23,7 +23,8 @@
       "Bash(node:*)",
       "Bash(npm uninstall:*)",
       "Skill(ui-ux-pro-max)",
-      "Skill(ui-ux-pro-max:*)"
+      "Skill(ui-ux-pro-max:*)",
+      "Bash(kill:*)"
     ]
   }
 }
